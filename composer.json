@@ -1,0 +1,25 @@
+{
+    "name": "easyengine/admin-tools-command",
+    "description": "Commanad to enable disable admin tools for php based sites.",
+    "type": "ee-cli-package",
+    "homepage": "https://github.com/easyengine/amdin-tools",
+    "license": "MIT",
+    "authors": [],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        },
+        "files": [ "admin-tools-command.php" ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        },
+        "bundled": true,
+        "commands": [
+            "admin-tools"
+        ]
+    }
+}

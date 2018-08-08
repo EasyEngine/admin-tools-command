@@ -1,0 +1,18 @@
+{
+    "index": {
+        "url": "",
+        "version": ""
+    },
+    "phpinfo": {
+        "url": "",
+        "version": ""
+    },
+    "pma": {
+        "url": "https://github.com/phpmyadmin/phpmyadmin/archive/RELEASE_{version}.zip",
+        "version": "4.8.2"
+    },
+    "pra": {
+        "url": "https://github.com/erikdubbelboer/phpRedisAdmin/archive/v{version}.zip",
+        "version": "1.10.2"
+    }
+}
