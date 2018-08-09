@@ -14,5 +14,9 @@
     "pra": {
         "url": "https://github.com/erikdubbelboer/phpRedisAdmin/archive/v{version}.zip",
         "version": "1.10.2"
+    },
+    "opcache": {
+        "url": "https://raw.githubusercontent.com/amnuts/opcache-gui/master/index.php",
+        "version": ""
     }
 }

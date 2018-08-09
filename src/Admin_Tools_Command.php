@@ -270,4 +270,18 @@ class Admin_Tools_Command extends EE_Command {
 		$this->move_config_file( $tool_path . '/config.inc.php', 'pma.config.mustache' );
 	}
 
+	/**
+	 * Function to install opcache gui.
+	 *
+	 * @param array $data       Data about url and version from `tools.json`.
+	 * @param string $tool_path Path to where the tool needs to be installed.
+	 */
+	private function install_opcache( $data, $tool_path ) {
+
+		$temp_dir      = EE\Utils\get_temp_dir();
+		$download_path = $temp_dir . 'opcache-gui.php';
+		$this->download( $download_path, $data['url'] );
+		$this->fs->rename( $temp_dir . 'opcache-gui.php', $tool_path . '-gui.php' );
+	}
+
 }
