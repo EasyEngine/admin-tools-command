@@ -59,6 +59,8 @@ unset( $services['sitename'] );
 $scan  = scandir( '/var/www/htdocs/ee-admin' );
 $tools = array_slice( $scan, 2 );
 
+$tools = array_diff( $tools, [ 'index.php' ] );
+
 if ( ! $services['cache_type'] ) {
 	$tools = array_diff( $tools, [ 'pra' ] );
 }
