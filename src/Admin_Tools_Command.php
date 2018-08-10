@@ -12,6 +12,8 @@
  */
 
 use \Symfony\Component\Filesystem\Filesystem;
+use \Composer\Console\Application;
+use \Symfony\Component\Console\Input\ArrayInput;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -56,6 +58,8 @@ class Admin_Tools_Command extends EE_Command {
 				$tool_path = ADMIN_TOOL_DIR . '/' . $tool;
 				call_user_func_array( [ $this, "install_$tool" ], [ $data, $tool_path ] );
 				EE::log( 'Done.' );
+			} else {
+				EE::log( "$tool already installed." );
 			}
 		}
 	}
@@ -140,6 +144,7 @@ class Admin_Tools_Command extends EE_Command {
 	private function is_installed( $tool = '' ) {
 
 		$tool = in_array( $tool, [ 'index', 'phpinfo' ] ) ? $tool . '.php' : $tool;
+		$tool = 'opcache' === $tool ? $tool . '-gui.php' : $tool;
 
 		return $this->fs->exists( ADMIN_TOOL_DIR . '/' . $tool );
 	}
@@ -185,10 +190,10 @@ class Admin_Tools_Command extends EE_Command {
 	/**
 	 * Place config files from templates to tools.
 	 *
-	 * @param string $config_file   Path where the config file needs to go.
-	 * @param string $template_file Template file from which the config needs to be created.
+	 * @param string $config_file   Destination Path where the config file needs to go.
+	 * @param string $template_file Source Template file from which the config needs to be created.
 	 */
-	private function move_config_file( $config_file, $template_file ) {
+	private function move_config_file( $template_file, $config_file ) {
 
 		$this->fs->dumpFile( $config_file, file_get_contents( ADMIN_TEMPLATE_ROOT . '/' . $template_file ) );
 	}
@@ -212,6 +217,16 @@ class Admin_Tools_Command extends EE_Command {
 		}
 	}
 
+	private function composer_install( $tool_path ) {
+
+		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
+		chdir( $tool_path );
+		$input       = new ArrayInput( array( 'command' => 'install' ) );
+		$application = new Application();
+		$application->setAutoExit( false );
+		$application->run( $input );
+	}
+
 
 	/**
 	 * Function to install index.php file.
@@ -221,7 +236,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_index( $data, $tool_path ) {
 
-		$this->move_config_file( $tool_path . '.php', 'index.mustache' );
+		$this->move_config_file( 'index.mustache', $tool_path . '.php' );
 	}
 
 	/**
@@ -232,7 +247,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_phpinfo( $data, $tool_path ) {
 
-		$this->move_config_file( $tool_path . '.php', 'phpinfo.mustache' );
+		$this->move_config_file( 'phpinfo.mustache', $tool_path . '.php' );
 	}
 
 	/**
@@ -250,7 +265,8 @@ class Admin_Tools_Command extends EE_Command {
 		$this->download( $download_path, $download_url );
 		$this->extract_zip( $download_path, $temp_dir );
 		$this->fs->rename( $temp_dir . 'phpmyadmin-RELEASE_' . $version, $tool_path );
-		$this->move_config_file( $tool_path . '/config.inc.php', 'pma.config.mustache' );
+		$this->move_config_file( 'pma.config.mustache', $tool_path . '/config.inc.php' );
+		$this->composer_install( $tool_path );
 	}
 
 	/**
@@ -267,7 +283,8 @@ class Admin_Tools_Command extends EE_Command {
 		$this->download( $download_path, $download_url );
 		$this->extract_zip( $download_path, $temp_dir );
 		$this->fs->rename( $temp_dir . 'phpRedisAdmin-' . $data['version'], $tool_path );
-		$this->move_config_file( $tool_path . '/config.inc.php', 'pma.config.mustache' );
+		$this->move_config_file( 'pra.config.mustache', $tool_path . 'includes/config.inc.php' );
+		$this->composer_install( $tool_path );
 	}
 
 	/**
