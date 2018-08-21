@@ -29,9 +29,9 @@ class Admin_Tools_Command extends EE_Command {
 	private $fs;
 
 	/**
-	 * @var array $site Associative array containing essential site related information.
+	 * @var array $db Object containing essential site related information.
 	 */
-	private $site;
+	private $db;
 
 	public function __construct() {
 
@@ -72,20 +72,32 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [<site-name>]
 	 * : Name of website to enable admin-tools on.
+	 *
+	 * [--force]
+	 * : Force enabling of admin-tools for a site.
 	 */
 	public function up( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' start' );
-		$args = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
-		$this->populate_site_info( $args );
-		chdir( $this->site['root'] );
+		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
+		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		if ( ! $this->db || ! $this->db->site_enabled ) {
+			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
+		}
+
+		if ( $this->db->admin_tools && ! $force ) {
+			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->db->site_url ) );
+		}
+
+		chdir( $this->db->site_fs_path );
 
 		$launch           = EE::launch( 'docker-compose config --services' );
 		$services         = explode( PHP_EOL, trim( $launch->stdout ) );
 		$min_req_services = [ 'nginx', 'php' ];
 
 		if ( count( array_intersect( $services, $min_req_services ) ) !== count( $min_req_services ) ) {
-			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->site['type'], $this->site['command'] ) );
+			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->db->app_sub_type, $this->db->site_type ) );
 		}
 
 		if ( ! $this->is_installed() ) {
@@ -93,17 +105,14 @@ class Admin_Tools_Command extends EE_Command {
 			$this->install();
 		}
 
-		// TODO: services_enabled fnuction after db changes
-		// if($this->services_enabled()){
-		// 	EE::error('Services are already enabled.');
-		// }
-
-		$this->move_config_file( $this->site['root'] . '/docker-compose-admin.yml', 'docker-compose-admin.mustache' );
+		$this->move_config_file( $this->db->site_fs_path . '/docker-compose-admin.yml', 'docker-compose-admin.mustache' );
 
 		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
-			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->site['name'] ) );
+			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->db->site_url ) );
+			$this->db->admin_tools = 1;
+			$this->db->save();
 		} else {
-			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->site['name'] ) );
+			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->db->site_url ) );
 		}
 
 		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' stop' );
@@ -116,21 +125,28 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [<site-name>]
 	 * : Name of website to disable admin-tools on.
+	 *
+	 * [--force]
+	 * : Force disabling of admin-tools for a site.
 	 */
 	public function down( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' start' );
-		$args = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
-		$this->populate_site_info( $args );
+		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
+		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		if ( ! $this->db || ! $this->db->site_enabled ) {
+			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
+		}
 
-		// TODO: services_enabled fnuction after db changes
-		// if($this->services_enabled()){
-		// 	Then only run this...
-		// }
+		if ( ! $this->db->admin_tools && ! $force ) {
+			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->db->site_url ) );
+		}
 
-		EE::docker()::docker_compose_up( $this->site['root'], [ 'nginx', 'php' ] );
-		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->site['name'] ) );
-
+		EE::docker()::docker_compose_up( $this->db->site_fs_path, [ 'nginx', 'php' ] );
+		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->db->site_url ) );
+		$this->db->admin_tools = 0;
+		$this->db->save();
 		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' stop' );
 	}
 
@@ -198,25 +214,6 @@ class Admin_Tools_Command extends EE_Command {
 		$this->fs->dumpFile( $config_file, file_get_contents( ADMIN_TEMPLATE_ROOT . '/' . $template_file ) );
 	}
 
-	/**
-	 * Populate basic site info from db.
-	 */
-	private function populate_site_info( $args ) {
-
-		$this->site['name'] = EE\Utils\remove_trailing_slash( $args[0] );
-
-		if ( EE::db()::site_in_db( $this->site['name'] ) ) {
-
-			$db_select = EE::db()::select( [], [ 'sitename' => $this->site['name'] ], 'sites', 1 );
-
-			$this->site['type']    = $db_select['site_type'];
-			$this->site['root']    = $db_select['site_path'];
-			$this->site['command'] = $db_select['site_command'];
-		} else {
-			EE::error( sprintf( 'Site %s does not exist.', $this->site['name'] ) );
-		}
-	}
-
 	private function composer_install( $tool_path ) {
 
 		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
@@ -226,7 +223,6 @@ class Admin_Tools_Command extends EE_Command {
 		$application->setAutoExit( false );
 		$application->run( $input );
 	}
-
 
 	/**
 	 * Function to install index.php file.
