@@ -50,7 +50,26 @@ class Admin_Tools_Command extends EE_Command {
 			$this->fs->mkdir( ADMIN_TOOL_DIR );
 		}
 
-		$tools = json_decode( file_get_contents( ADMIN_TOOLS_FILE ), true );
+		$tools_file_info = pathinfo( ADMIN_TOOLS_FILE );
+		EE::debug( 'admin-tools file: ' . ADMIN_TOOLS_FILE );
+
+		if ( 'json' !== $tools_file_info['extension'] ) {
+			EE::error( 'Invalid admin-tools file found. Aborting.' );
+		}
+
+		$tools_file = file_get_contents( ADMIN_TOOLS_FILE );
+		if ( empty( $tools_file ) ) {
+			EE::error( 'admin-tools file is empty. Can\'t proceed further.' );
+		}
+		$tools = json_decode( $tools_file, true );
+		if ( empty( $tools ) ) {
+			EE::error( 'No data found in admin-tools file. Can\'t proceed further.' );
+		}
+		$json_error = json_last_error();
+		if ( $json_error != JSON_ERROR_NONE ) {
+			EE::debug( 'Json last error: ' . $json_error );
+			EE::error( 'Error decoding admin-tools file.' );
+		}
 
 		foreach ( $tools as $tool => $data ) {
 			if ( ! $this->is_installed( $tool ) ) {
