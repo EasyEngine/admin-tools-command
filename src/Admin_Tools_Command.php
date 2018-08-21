@@ -236,6 +236,11 @@ class Admin_Tools_Command extends EE_Command {
 		$this->fs->dumpFile( $config_file, file_get_contents( ADMIN_TEMPLATE_ROOT . '/' . $template_file ) );
 	}
 
+	/**
+	 * Function to run install composer dependencies in tools that require it.
+	 *
+	 * @param string $tool_path Directory of the tool that contains `composer.json` file.
+	 */
 	private function composer_install( $tool_path ) {
 
 		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
