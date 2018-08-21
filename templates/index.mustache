@@ -1,5 +1,11 @@
 <?php
 
+
+/**
+ * Function to get the details of a site from database in an array.
+ *
+ * @return array Associative array containing fields returned from db for that site.
+ */
 function populate_site_info() {
 
 	$site_name = $_SERVER['HTTP_HOST'];
@@ -9,6 +15,16 @@ function populate_site_info() {
 
 }
 
+/**
+ * Select data from the database.
+ *
+ * @param array    $columns
+ * @param array    $where
+ * @param string   $table_name
+ * @param int|null $limit
+ *
+ * @return array|bool
+ */
 function select( $columns = array(), $where = array(), $table_name = 'services', $limit = null ) {
 
 	$db_path = '/opt/easyengine/ee.sqlite';
