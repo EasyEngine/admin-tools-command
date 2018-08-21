@@ -35,7 +35,7 @@ class Admin_Tools_Command extends EE_Command {
 
 	public function __construct() {
 
-		$this->fs      = new Filesystem();
+		$this->fs = new Filesystem();
 		define( 'ADMIN_TOOL_DIR', EE_CONF_ROOT . '/admin-tools' );
 	}
 
@@ -258,7 +258,12 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_index( $data, $tool_path ) {
 
-		$this->move_config_file( 'index.mustache', $tool_path . '.php' );
+		$index_path_data = [
+			'db_path'       => DB,
+			'ee_admin_path' => '/var/www/htdocs/ee-admin',
+		];
+		$index_file      = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/index.mustache', $index_path_data );
+		$this->fs->dumpFile( $tool_path . '.php', $index_file );
 	}
 
 	/**
