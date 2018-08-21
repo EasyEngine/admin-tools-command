@@ -3,7 +3,7 @@
 function populate_site_info() {
 
 	$site_name = $_SERVER['HTTP_HOST'];
-	$db_select = select( [], array( 'sitename' => $site_name ), 'sites', 1 );
+	$db_select = select( [], array( 'site_url' => $site_name ), 'sites', 1 );
 
 	return $db_select[0];
 
@@ -53,7 +53,7 @@ function select( $columns = array(), $where = array(), $table_name = 'services',
 
 $services = populate_site_info();
 unset( $services['id'] );
-unset( $services['sitename'] );
+unset( $services['site_url'] );
 
 
 $scan  = scandir( '/var/www/htdocs/ee-admin' );
@@ -61,7 +61,7 @@ $tools = array_slice( $scan, 2 );
 
 $tools = array_diff( $tools, [ 'index.php' ] );
 
-if ( ! $services['cache_type'] ) {
+if ( ! $services['cache_nginx_fullpage'] ) {
 	$tools = array_diff( $tools, [ 'pra' ] );
 }
 
