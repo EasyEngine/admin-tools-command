@@ -106,7 +106,7 @@ class Admin_Tools_Command extends EE_Command {
 			$this->install();
 		}
 
-		$this->move_config_file( $this->db->site_fs_path . '/docker-compose-admin.yml', 'docker-compose-admin.mustache' );
+		$this->move_config_file( 'docker-compose-admin.mustache', $this->db->site_fs_path . '/docker-compose-admin.yml' );
 
 		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
 			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->db->site_url ) );
