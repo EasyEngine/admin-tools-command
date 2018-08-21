@@ -35,7 +35,6 @@ class Admin_Tools_Command extends EE_Command {
 
 	public function __construct() {
 
-		$this->command = 'admin-tools';
 		$this->fs      = new Filesystem();
 		define( 'ADMIN_TOOL_DIR', EE_CONF_ROOT . '/admin-tools' );
 	}
@@ -100,7 +99,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	public function up( $args, $assoc_args ) {
 
-		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' start' );
+		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
 		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
@@ -137,7 +136,7 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->db->site_url ) );
 		}
 
-		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' stop' );
+		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
 	}
 
 	/**
@@ -153,7 +152,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	public function down( $args, $assoc_args ) {
 
-		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' start' );
+		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
 		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
@@ -169,7 +168,7 @@ class Admin_Tools_Command extends EE_Command {
 		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->db->site_url ) );
 		$this->db->admin_tools = 0;
 		$this->db->save();
-		EE\Utils\delem_log( $this->command . ' ' . __FUNCTION__ . ' stop' );
+		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
 	}
 
 	/**
