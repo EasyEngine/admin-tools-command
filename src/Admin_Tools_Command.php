@@ -75,7 +75,11 @@ class Admin_Tools_Command extends EE_Command {
 			if ( ! $this->is_installed( $tool ) ) {
 				EE::log( "Installing $tool" );
 				$tool_path = ADMIN_TOOL_DIR . '/' . $tool;
-				call_user_func_array( [ $this, "install_$tool" ], [ $data, $tool_path ] );
+				if ( method_exists( $this, "install_$tool" ) ) {
+					call_user_func_array( [ $this, "install_$tool" ], [ $data, $tool_path ] );
+				} else {
+					EE::warning( "No method found to install $tool. Skipping it." );
+				}
 				EE::log( 'Done.' );
 			} else {
 				EE::log( "$tool already installed." );
