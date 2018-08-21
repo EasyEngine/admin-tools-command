@@ -1,0 +1,86 @@
+<?php
+
+
+/**
+ * Function to get the details of a site from database in an array.
+ *
+ * @return array Associative array containing fields returned from db for that site.
+ */
+function populate_site_info() {
+
+	$site_name = $_SERVER['HTTP_HOST'];
+	$db_select = select( [], array( 'site_url' => $site_name ), 'sites', 1 );
+
+	return $db_select[0];
+
+}
+
+/**
+ * Select data from the database.
+ *
+ * @param array    $columns
+ * @param array    $where
+ * @param string   $table_name
+ * @param int|null $limit
+ *
+ * @return array|bool
+ */
+function select( $columns = array(), $where = array(), $table_name = 'services', $limit = null ) {
+
+	$db_path = '{{db_path}}';
+	$db      = new SQLite3( $db_path );
+
+	$conditions = array();
+	if ( empty( $columns ) ) {
+		$columns = '*';
+	} else {
+		$columns = implode( ',', $columns );
+	}
+
+	foreach ( $where as $key => $value ) {
+		$conditions[] = "`$key`='" . $value . "'";
+	}
+
+	$conditions = implode( ' AND ', $conditions );
+
+	$select_data_query = "SELECT {$columns} FROM `$table_name`";
+
+	if ( ! empty( $conditions ) ) {
+		$select_data_query .= " WHERE $conditions";
+	}
+
+	if ( ! empty( $limit ) ) {
+		$select_data_query .= " LIMIT $limit";
+	}
+
+	$select_data_exec = $db->query( $select_data_query );
+	$select_data      = array();
+	if ( $select_data_exec ) {
+		while ( $row = $select_data_exec->fetchArray( SQLITE3_ASSOC ) ) {
+			$select_data[] = $row;
+		}
+	}
+	if ( empty( $select_data ) ) {
+		return false;
+	}
+
+	return $select_data;
+}
+
+$services = populate_site_info();
+unset( $services['id'] );
+unset( $services['site_url'] );
+
+
+$scan  = scandir( '{{ee_admin_path}}' );
+$tools = array_slice( $scan, 2 );
+
+$tools = array_diff( $tools, [ 'index.php' ] );
+
+if ( ! $services['cache_nginx_fullpage'] ) {
+	$tools = array_diff( $tools, [ 'pra' ] );
+}
+
+foreach ( $tools as $tool ) {
+	echo '<a href="' . $tool . '">' . $tool . '</a><br/>';
+}
