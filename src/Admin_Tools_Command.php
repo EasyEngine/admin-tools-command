@@ -11,6 +11,7 @@
  * @package ee-cli
  */
 
+use EE\Model\Site;
 use \Symfony\Component\Filesystem\Filesystem;
 use \Composer\Console\Application;
 use \Symfony\Component\Console\Input\ArrayInput;
@@ -218,7 +219,7 @@ class Admin_Tools_Command extends EE_Command {
 
 		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
 		chdir( $tool_path );
-		$input       = new ArrayInput( array( 'command' => 'install' ) );
+		$input       = new ArrayInput( array( 'command' => 'update' ) );
 		$application = new Application();
 		$application->setAutoExit( false );
 		$application->run( $input );
