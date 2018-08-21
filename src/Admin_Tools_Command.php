@@ -61,13 +61,13 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( 'admin-tools file is empty. Can\'t proceed further.' );
 		}
 		$tools = json_decode( $tools_file, true );
-		if ( empty( $tools ) ) {
-			EE::error( 'No data found in admin-tools file. Can\'t proceed further.' );
-		}
 		$json_error = json_last_error();
 		if ( $json_error != JSON_ERROR_NONE ) {
 			EE::debug( 'Json last error: ' . $json_error );
 			EE::error( 'Error decoding admin-tools file.' );
+		}
+		if ( empty( $tools ) ) {
+			EE::error( 'No data found in admin-tools file. Can\'t proceed further.' );
 		}
 
 		foreach ( $tools as $tool => $data ) {
@@ -77,7 +77,7 @@ class Admin_Tools_Command extends EE_Command {
 				if ( method_exists( $this, "install_$tool" ) ) {
 					call_user_func_array( [ $this, "install_$tool" ], [ $data, $tool_path ] );
 				} else {
-					EE::warning( "No method found to install $tool. Skipping it." );
+					EE::error( "No method found to install $tool. Aborting." );
 				}
 				EE::log( 'Done.' );
 			} else {
