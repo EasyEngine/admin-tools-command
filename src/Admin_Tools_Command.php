@@ -18,7 +18,6 @@ use \Symfony\Component\Console\Input\ArrayInput;
 
 class Admin_Tools_Command extends EE_Command {
 
-
 	/**
 	 * @var string $command Name of the command being run.
 	 */
@@ -64,7 +63,6 @@ class Admin_Tools_Command extends EE_Command {
 			}
 		}
 	}
-
 
 	/**
 	 * Enables admin-tools on given site.
