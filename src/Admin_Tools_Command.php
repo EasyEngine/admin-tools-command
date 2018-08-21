@@ -79,7 +79,7 @@ class Admin_Tools_Command extends EE_Command {
 				} else {
 					EE::error( "No method found to install $tool. Aborting." );
 				}
-				EE::log( 'Done.' );
+				EE::success( "Installed $tool successfully." );
 			} else {
 				EE::log( "$tool already installed." );
 			}
