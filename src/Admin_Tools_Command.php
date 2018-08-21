@@ -280,7 +280,7 @@ class Admin_Tools_Command extends EE_Command {
 		$this->download( $download_path, $download_url );
 		$this->extract_zip( $download_path, $temp_dir );
 		$this->fs->rename( $temp_dir . 'phpRedisAdmin-' . $data['version'], $tool_path );
-		$this->move_config_file( 'pra.config.mustache', $tool_path . 'includes/config.inc.php' );
+		$this->move_config_file( 'pra.config.mustache', $tool_path . '/includes/config.inc.php' );
 		$this->composer_install( $tool_path );
 	}
 
