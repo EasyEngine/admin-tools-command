@@ -5,7 +5,7 @@ if ( ! class_exists( 'EE' ) ) {
 }
 
 if ( ! defined( 'ADMIN_TOOLS_FILE' ) ) {
-	define( 'ADMIN_TOOLS_FILE', __DIR__ . '/tools.json' );
+	define( 'ADMIN_TOOLS_FILE', __DIR__ . '/ee-tools.json' );
 }
 
 if ( ! defined( 'ADMIN_TEMPLATE_ROOT' ) ) {
