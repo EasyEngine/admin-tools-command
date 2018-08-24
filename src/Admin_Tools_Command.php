@@ -124,6 +124,7 @@ class Admin_Tools_Command extends EE_Command {
 		if ( ! $this->is_installed() ) {
 			EE::log( 'It seems admin-tools have not yet been installed.' );
 			$this->install();
+			chdir( $this->site_data->site_fs_path );
 		}
 
 		$this->move_config_file( 'docker-compose-admin.mustache', $this->site_data->site_fs_path . '/docker-compose-admin.yml' );
