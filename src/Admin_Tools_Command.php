@@ -15,6 +15,7 @@ use EE\Model\Site;
 use \Symfony\Component\Filesystem\Filesystem;
 use \Composer\Console\Application;
 use \Symfony\Component\Console\Input\ArrayInput;
+use function EE\Site\Utils\auto_site_name;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -100,7 +101,7 @@ class Admin_Tools_Command extends EE_Command {
 	public function up( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args            = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
+		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
 		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
@@ -154,7 +155,7 @@ class Admin_Tools_Command extends EE_Command {
 	public function down( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args            = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
+		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
 		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
