@@ -18,3 +18,15 @@ if ( file_exists( $autoload ) ) {
 }
 
 EE::add_command( 'admin-tools', 'Admin_Tools_Command' );
+
+
+EE::add_hook('before_invoke:admin-tools up', function ( $args, $assoc_args ) {
+	$site = \EE\Site\Utils\auto_site_name( $args, 'admin-tools', 'up' );
+	$fs = new \Symfony\Component\Filesystem\Filesystem();
+
+	if ( ! is_array( EE::get_runner()->find_command_to_run( [ 'auth' ] ) ) ) {
+		EE::error( 'Auth command needs to be registered for admin_tools' );
+	}
+
+	EE::launch_self( 'auth', [ 'create', 'global' ], [], false );
+});
