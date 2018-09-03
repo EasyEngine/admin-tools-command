@@ -245,6 +245,8 @@ class Admin_Tools_Command extends EE_Command {
 	private function composer_install( $tool_path ) {
 
 		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
+		putenv( 'COMPOSER_CACHE_DIR=/dev/null' );
+		putenv( 'COMPOSER_ALLOW_SUPERUSER=1' );
 		chdir( $tool_path );
 		$input       = new ArrayInput( array( 'command' => 'update' ) );
 		$application = new Application();
