@@ -28,5 +28,5 @@ EE::add_hook('before_invoke:admin-tools up', function ( $args, $assoc_args ) {
 		EE::error( 'Auth command needs to be registered for admin_tools' );
 	}
 
-	EE::launch_self( 'auth', [ 'create', 'global' ], [], false );
+	EE::run_command( [ 'auth', 'init' ] );
 });
