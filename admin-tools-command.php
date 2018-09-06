@@ -13,6 +13,7 @@ if ( ! defined( 'ADMIN_TEMPLATE_ROOT' ) ) {
 }
 
 $autoload = dirname( __FILE__ ) . '/vendor/autoload.php';
+
 if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }

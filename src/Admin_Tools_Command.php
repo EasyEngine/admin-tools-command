@@ -11,10 +11,10 @@
  * @package ee-cli
  */
 
+use Composer\Console\Application;
 use EE\Model\Site;
-use \Symfony\Component\Filesystem\Filesystem;
-use \Composer\Console\Application;
-use \Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 
 class Admin_Tools_Command extends EE_Command {
@@ -99,6 +99,8 @@ class Admin_Tools_Command extends EE_Command {
 	 * : Force enabling of admin-tools for a site.
 	 */
 	public function up( $args, $assoc_args ) {
+
+		\EE\Auth\Utils\init_global_admin_tools_auth();
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
