@@ -5,7 +5,7 @@ if ( ! class_exists( 'EE' ) ) {
 }
 
 if ( ! defined( 'ADMIN_TOOLS_FILE' ) ) {
-	define( 'ADMIN_TOOLS_FILE', __DIR__ . '/tools.json' );
+	define( 'ADMIN_TOOLS_FILE', __DIR__ . '/ee-tools.json' );
 }
 
 if ( ! defined( 'ADMIN_TEMPLATE_ROOT' ) ) {
@@ -13,6 +13,7 @@ if ( ! defined( 'ADMIN_TEMPLATE_ROOT' ) ) {
 }
 
 $autoload = dirname( __FILE__ ) . '/vendor/autoload.php';
+
 if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }

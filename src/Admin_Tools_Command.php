@@ -11,10 +11,11 @@
  * @package ee-cli
  */
 
+use Composer\Console\Application;
 use EE\Model\Site;
-use \Symfony\Component\Filesystem\Filesystem;
-use \Composer\Console\Application;
-use \Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Filesystem\Filesystem;
+use function EE\Site\Utils\auto_site_name;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -29,9 +30,9 @@ class Admin_Tools_Command extends EE_Command {
 	private $fs;
 
 	/**
-	 * @var array $db Object containing essential site related information.
+	 * @var array $site_data Object containing essential site related information.
 	 */
-	private $db;
+	private $site_data;
 
 	public function __construct() {
 
@@ -60,7 +61,7 @@ class Admin_Tools_Command extends EE_Command {
 		if ( empty( $tools_file ) ) {
 			EE::error( 'admin-tools file is empty. Can\'t proceed further.' );
 		}
-		$tools = json_decode( $tools_file, true );
+		$tools      = json_decode( $tools_file, true );
 		$json_error = json_last_error();
 		if ( $json_error != JSON_ERROR_NONE ) {
 			EE::debug( 'Json last error: ' . $json_error );
@@ -99,41 +100,44 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	public function up( $args, $assoc_args ) {
 
+		\EE\Auth\Utils\init_global_admin_tools_auth();
+
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
-		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
-		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
-		if ( ! $this->db || ! $this->db->site_enabled ) {
+		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
+		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
 			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
 		}
 
-		if ( $this->db->admin_tools && ! $force ) {
-			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->db->site_url ) );
+		if ( $this->site_data->admin_tools && ! $force ) {
+			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->site_data->site_url ) );
 		}
 
-		chdir( $this->db->site_fs_path );
+		chdir( $this->site_data->site_fs_path );
 
 		$launch           = EE::launch( 'docker-compose config --services' );
 		$services         = explode( PHP_EOL, trim( $launch->stdout ) );
 		$min_req_services = [ 'nginx', 'php' ];
 
 		if ( count( array_intersect( $services, $min_req_services ) ) !== count( $min_req_services ) ) {
-			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->db->app_sub_type, $this->db->site_type ) );
+			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->site_data->app_sub_type, $this->site_data->site_type ) );
 		}
 
 		if ( ! $this->is_installed() ) {
 			EE::log( 'It seems admin-tools have not yet been installed.' );
 			$this->install();
+			chdir( $this->site_data->site_fs_path );
 		}
 
-		$this->move_config_file( 'docker-compose-admin.mustache', $this->db->site_fs_path . '/docker-compose-admin.yml' );
+		$this->move_config_file( 'docker-compose-admin.mustache', $this->site_data->site_fs_path . '/docker-compose-admin.yml' );
 
 		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
-			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->db->site_url ) );
-			$this->db->admin_tools = 1;
-			$this->db->save();
+			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->site_data->site_url ) );
+			$this->site_data->admin_tools = 1;
+			$this->site_data->save();
 		} else {
-			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->db->site_url ) );
+			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->site_data->site_url ) );
 		}
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
@@ -153,21 +157,21 @@ class Admin_Tools_Command extends EE_Command {
 	public function down( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args     = EE\SiteUtils\auto_site_name( $args, $this->command, __FUNCTION__ );
-		$force    = EE\Utils\get_flag_value( $assoc_args, 'force' );
-		$this->db = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
-		if ( ! $this->db || ! $this->db->site_enabled ) {
+		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
+		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
+		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
 			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
 		}
 
-		if ( ! $this->db->admin_tools && ! $force ) {
-			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->db->site_url ) );
+		if ( ! $this->site_data->admin_tools && ! $force ) {
+			EE::error( sprintf( 'admin-tools already seem to be enabled for %s', $this->site_data->site_url ) );
 		}
 
-		EE::docker()::docker_compose_up( $this->db->site_fs_path, [ 'nginx', 'php' ] );
-		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->db->site_url ) );
-		$this->db->admin_tools = 0;
-		$this->db->save();
+		EE::docker()::docker_compose_up( $this->site_data->site_fs_path, [ 'nginx', 'php' ] );
+		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->site_data->site_url ) );
+		$this->site_data->admin_tools = 0;
+		$this->site_data->save();
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
 	}
 
@@ -242,12 +246,10 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function composer_install( $tool_path ) {
 
-		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
 		chdir( $tool_path );
-		$input       = new ArrayInput( array( 'command' => 'update' ) );
-		$application = new Application();
-		$application->setAutoExit( false );
-		$application->run( $input );
+		EE::log( 'Installing dependencies. This may take a little while.' );
+		$img_versions = \EE\Utils\get_image_versions();
+		EE::exec( sprintf( 'docker run --rm -it -e USER_ID=0 -e GROUP_ID=0 --user=root -v $PWD:/var/www/htdocs easyengine/php:%s composer update', $img_versions['easyengine/php'] ) );
 	}
 
 	/**
