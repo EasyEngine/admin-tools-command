@@ -246,12 +246,10 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function composer_install( $tool_path ) {
 
-		putenv( 'COMPOSER_HOME=' . EE_VENDOR_DIR . '/bin/composer' );
 		chdir( $tool_path );
-		$input       = new ArrayInput( array( 'command' => 'update' ) );
-		$application = new Application();
-		$application->setAutoExit( false );
-		$application->run( $input );
+		EE::log( 'Installing dependencies. This may take a little while.' );
+		$img_versions = \EE\Utils\get_image_versions();
+		EE::exec( sprintf( 'docker run --rm -it -e USER_ID=0 -e GROUP_ID=0 --user=root -v $PWD:/var/www/htdocs easyengine/php:%s composer update', $img_versions['easyengine/php'] ) );
 	}
 
 	/**
