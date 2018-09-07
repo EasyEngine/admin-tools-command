@@ -11,9 +11,7 @@
  * @package ee-cli
  */
 
-use Composer\Console\Application;
 use EE\Model\Site;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 
@@ -41,7 +39,13 @@ class Admin_Tools_Command extends EE_Command {
 	}
 
 	/**
-	 * Installs admin-tools for EasyEngine.
+	 * Installs admin tools for EasyEngine.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Install admin tools
+	 *     $ ee admin-tools install
+	 *
 	 */
 	public function install() {
 
@@ -88,7 +92,7 @@ class Admin_Tools_Command extends EE_Command {
 	}
 
 	/**
-	 * Enables admin-tools on given site.
+	 * Enables admin tools on site.
 	 *
 	 * ## OPTIONS
 	 *
@@ -97,6 +101,12 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [--force]
 	 * : Force enabling of admin-tools for a site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Enable admin tools on site
+	 *     $ ee admin-tools up example.com
+	 *
 	 */
 	public function up( $args, $assoc_args ) {
 
@@ -153,6 +163,12 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [--force]
 	 * : Force disabling of admin-tools for a site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Disable admin tools on site
+	 *     $ ee admin-tools down example.com
+	 *
 	 */
 	public function down( $args, $assoc_args ) {
 
