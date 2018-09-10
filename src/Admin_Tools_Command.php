@@ -107,6 +107,9 @@ class Admin_Tools_Command extends EE_Command {
 	 *     # Enable admin tools on site
 	 *     $ ee admin-tools up example.com
 	 *
+	 *     # Force enable admin tools on site
+	 *     $ ee admin-tools up example.com --force
+	 *
 	 */
 	public function up( $args, $assoc_args ) {
 
@@ -168,6 +171,9 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 *     # Disable admin tools on site
 	 *     $ ee admin-tools down example.com
+	 *
+	 *     # Force disable admin tools on site
+	 *     $ ee admin-tools down example.com --force
 	 *
 	 */
 	public function down( $args, $assoc_args ) {
