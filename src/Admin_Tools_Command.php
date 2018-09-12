@@ -311,13 +311,10 @@ class Admin_Tools_Command extends EE_Command {
 
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pma.zip';
-		$version       = str_replace( '.', '_', $data['version'] );
-		$download_url  = str_replace( '{version}', $version, $data['url'] );
-		$this->download( $download_path, $download_url );
+		$this->download( $download_path, $data['url'] );
 		$this->extract_zip( $download_path, $temp_dir );
 		$this->fs->rename( $temp_dir . 'phpmyadmin-RELEASE_' . $version, $tool_path );
 		$this->move_config_file( 'pma.config.mustache', $tool_path . '/config.inc.php' );
-		$this->composer_install( $tool_path );
 	}
 
 	/**
