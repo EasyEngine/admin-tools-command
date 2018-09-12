@@ -40,14 +40,8 @@ class Admin_Tools_Command extends EE_Command {
 
 	/**
 	 * Installs admin tools for EasyEngine.
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     # Install admin tools
-	 *     $ ee admin-tools install
-	 *
 	 */
-	public function install() {
+	private function install() {
 
 		if ( ! $this->is_installed() ) {
 			EE::log( 'Installing admin-tools. This may take some time.' );
@@ -138,7 +132,6 @@ class Admin_Tools_Command extends EE_Command {
 		}
 
 		if ( ! $this->is_installed() ) {
-			EE::log( 'It seems admin-tools have not yet been installed.' );
 			$this->install();
 			chdir( $this->site_data->site_fs_path );
 		}
