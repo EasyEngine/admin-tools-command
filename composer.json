@@ -19,7 +19,10 @@
         },
         "bundled": true,
         "commands": [
-            "admin-tools"
+            "admin-tools",
+            "admin-tools install",
+            "admin-tools up",
+            "admin-tools down"
         ]
     }
 }
