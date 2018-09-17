@@ -1,6 +1,6 @@
 {
     "name": "easyengine/admin-tools-command",
-    "description": "Commanad to enable disable admin tools for php based sites.",
+    "description": "Command to manage admin tools for php based sites.",
     "type": "ee-cli-package",
     "homepage": "https://github.com/easyengine/amdin-tools",
     "license": "MIT",
@@ -21,8 +21,8 @@
         "commands": [
             "admin-tools",
             "admin-tools install",
-            "admin-tools up",
-            "admin-tools down"
+            "admin-tools enable",
+            "admin-tools disable"
         ]
     }
 }

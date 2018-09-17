@@ -1,7 +1,7 @@
 easyengine/admin-tools-command
 ==============================
 
-Commanad to enable disable admin tools for php based sites.
+Command to manage admin tools for php based sites.
 
 
 
@@ -13,37 +13,37 @@ This package implements the following commands:
 
 ### ee admin-tools
 
-Enables/Disables admin-tools on a site.
+Manages admin-tools on a site.
 
 ~~~
 ee admin-tools
 ~~~
 
-**EXAMPLES**
 
-    # Enable admin tools on site
-    $ ee admin-tools up example.com
 
 
 
 ### ee admin-tools install
 
-Installs admin-tools for EasyEngine.
+Installs admin tools for EasyEngine.
 
 ~~~
 ee admin-tools install 
 ~~~
 
+**EXAMPLES**
+
+    # Install admin tools
+    $ ee admin-tools install
 
 
 
+### ee admin-tools enable
 
-### ee admin-tools up
-
-Enables admin-tools on given site.
+Enables admin tools on site.
 
 ~~~
-ee admin-tools up [<site-name>] [--force]
+ee admin-tools enable [<site-name>] [--force]
 ~~~
 
 **OPTIONS**
@@ -54,14 +54,22 @@ ee admin-tools up [<site-name>] [--force]
 	[--force]
 		Force enabling of admin-tools for a site.
 
+**EXAMPLES**
+
+    # Enable admin tools on site
+    $ ee admin-tools enable example.com
+
+    # Force enable admin tools on site
+    $ ee admin-tools enable example.com --force
 
 
-### ee admin-tools down
+
+### ee admin-tools disable
 
 Disables admin-tools on given site.
 
 ~~~
-ee admin-tools down [<site-name>] [--force]
+ee admin-tools disable [<site-name>] [--force]
 ~~~
 
 **OPTIONS**
@@ -71,6 +79,14 @@ ee admin-tools down [<site-name>] [--force]
 
 	[--force]
 		Force disabling of admin-tools for a site.
+
+**EXAMPLES**
+
+    # Disable admin tools on site
+    $ ee admin-tools disable example.com
+
+    # Force disable admin tools on site
+    $ ee admin-tools disable example.com --force
 
 ## Contributing
 
