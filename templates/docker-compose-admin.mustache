@@ -5,9 +5,9 @@ services:
   php:
     volumes:
       - "/opt/easyengine/admin-tools:/var/www/htdocs/ee-admin:ro"
-      - "/opt/easyengine/ee.sqlite:/opt/easyengine/ee.sqlite:ro"
+      - "/opt/easyengine/config/ee.sqlite:/opt/easyengine/config/ee.sqlite:ro"
 
   nginx:
     volumes:
       - "/opt/easyengine/admin-tools:/var/www/htdocs/ee-admin:ro"
-      - "/opt/easyengine/ee.sqlite:/opt/easyengine/ee.sqlite:ro"  
+      - "/opt/easyengine/config/ee.sqlite:/opt/easyengine/config/ee.sqlite:ro"

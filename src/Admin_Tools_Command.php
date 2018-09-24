@@ -30,7 +30,7 @@ class Admin_Tools_Command extends EE_Command {
 	public function __construct() {
 
 		$this->fs = new Filesystem();
-		define( 'ADMIN_TOOL_DIR', EE_CONF_ROOT . '/admin-tools' );
+		define( 'ADMIN_TOOL_DIR', EE_ROOT_DIR . '/admin-tools' );
 	}
 
 	/**
