@@ -1,12 +1,7 @@
 <?php
 
 /**
- * Enables/Disables admin-tools on a site.
- *
- * ## EXAMPLES
- *
- *     # Enable admin tools on site
- *     $ ee admin-tools up example.com
+ * Manages admin-tools on a site.
  *
  * @package ee-cli
  */
@@ -35,7 +30,7 @@ class Admin_Tools_Command extends EE_Command {
 	public function __construct() {
 
 		$this->fs = new Filesystem();
-		define( 'ADMIN_TOOL_DIR', EE_CONF_ROOT . '/admin-tools' );
+		define( 'ADMIN_TOOL_DIR', EE_ROOT_DIR . '/admin-tools' );
 	}
 
 	/**
@@ -97,13 +92,13 @@ class Admin_Tools_Command extends EE_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Enable admin tools on site
-	 *     $ ee admin-tools up example.com
+	 *     $ ee admin-tools enable example.com
 	 *
 	 *     # Force enable admin tools on site
-	 *     $ ee admin-tools up example.com --force
+	 *     $ ee admin-tools enable example.com --force
 	 *
 	 */
-	public function up( $args, $assoc_args ) {
+	public function enable( $args, $assoc_args ) {
 
 		\EE\Auth\Utils\init_global_admin_tools_auth();
 
@@ -159,13 +154,13 @@ class Admin_Tools_Command extends EE_Command {
 	 * ## EXAMPLES
 	 *
 	 *     # Disable admin tools on site
-	 *     $ ee admin-tools down example.com
+	 *     $ ee admin-tools disable example.com
 	 *
 	 *     # Force disable admin tools on site
-	 *     $ ee admin-tools down example.com --force
+	 *     $ ee admin-tools disable example.com --force
 	 *
 	 */
-	public function down( $args, $assoc_args ) {
+	public function disable( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
