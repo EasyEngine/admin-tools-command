@@ -283,6 +283,7 @@ class Admin_Tools_Command extends EE_Command {
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pma.zip';
 		$unzip_folder  = $temp_dir . '/pma';
+		$this->fs->remove( [ $download_path, $unzip_folder ] );
 		$this->download( $download_path, $data['url'] );
 		$this->extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name = scandir( $unzip_folder );
@@ -301,18 +302,20 @@ class Admin_Tools_Command extends EE_Command {
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pra.zip';
 		$unzip_folder  = $temp_dir . '/pra';
-		$vendor_zip    = $temp_dir . 'vendor.zip';
-		$vendor_path   = $unzip_folder . '/vendor';
-		$download_url  = str_replace( '{version}', $data['version'], $data['url'] );
+		$this->fs->remove( [ $download_path, $unzip_folder ] );
+		$vendor_zip   = $temp_dir . 'vendor.zip';
+		$download_url = str_replace( '{version}', $data['version'], $data['url'] );
 		$this->download( $download_path, $download_url );
 		$this->extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name        = scandir( $unzip_folder );
+		$pra_root_folder        = $unzip_folder . '/' . array_pop( $zip_folder_name );
+		$vendor_path            = $pra_root_folder . '/vendor';
 		$vendor_requirement_url = 'https://github.com/nrk/predis/archive/v1.1.1.zip';
 		$this->download( $vendor_zip, $vendor_requirement_url );
-		$this->extract_zip( $vendor_zip, $vendor_path );
-		$this->fs->rename( $unzip_folder . '/' . array_pop( $zip_folder_name ), $tool_path );
+		$this->extract_zip( $vendor_zip, $pra_root_folder );
+		$this->fs->rename( $pra_root_folder . '/predis-1.1.1', $vendor_path );
+		$this->fs->rename( $pra_root_folder, $tool_path );
 		$this->move_config_file( 'pra.config.mustache', $tool_path . '/includes/config.inc.php' );
-
 	}
 
 	/**
@@ -325,6 +328,7 @@ class Admin_Tools_Command extends EE_Command {
 
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'opcache-gui.php';
+		$this->fs->remove( $download_path );
 		$this->download( $download_path, $data['url'] );
 		$this->fs->rename( $temp_dir . 'opcache-gui.php', $tool_path . '-gui.php' );
 	}
