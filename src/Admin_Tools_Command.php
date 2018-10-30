@@ -1,19 +1,12 @@
 <?php
 
 /**
- * Enables/Disables admin-tools on a site.
- *
- * ## EXAMPLES
- *
- *     # Enable admin tools on site
- *     $ ee admin-tools up example.com
+ * Manages admin-tools on a site.
  *
  * @package ee-cli
  */
 
-use Composer\Console\Application;
 use EE\Model\Site;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 
@@ -37,13 +30,13 @@ class Admin_Tools_Command extends EE_Command {
 	public function __construct() {
 
 		$this->fs = new Filesystem();
-		define( 'ADMIN_TOOL_DIR', EE_CONF_ROOT . '/admin-tools' );
+		define( 'ADMIN_TOOL_DIR', EE_ROOT_DIR . '/admin-tools' );
 	}
 
 	/**
-	 * Installs admin-tools for EasyEngine.
+	 * Installs admin tools for EasyEngine.
 	 */
-	public function install() {
+	private function install() {
 
 		if ( ! $this->is_installed() ) {
 			EE::log( 'Installing admin-tools. This may take some time.' );
@@ -81,14 +74,12 @@ class Admin_Tools_Command extends EE_Command {
 					EE::error( "No method found to install $tool. Aborting." );
 				}
 				EE::success( "Installed $tool successfully." );
-			} else {
-				EE::log( "$tool already installed." );
 			}
 		}
 	}
 
 	/**
-	 * Enables admin-tools on given site.
+	 * Enables admin tools on site.
 	 *
 	 * ## OPTIONS
 	 *
@@ -97,8 +88,17 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [--force]
 	 * : Force enabling of admin-tools for a site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Enable admin tools on site
+	 *     $ ee admin-tools enable example.com
+	 *
+	 *     # Force enable admin tools on site
+	 *     $ ee admin-tools enable example.com --force
+	 *
 	 */
-	public function up( $args, $assoc_args ) {
+	public function enable( $args, $assoc_args ) {
 
 		\EE\Auth\Utils\init_global_admin_tools_auth();
 
@@ -124,11 +124,8 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->site_data->app_sub_type, $this->site_data->site_type ) );
 		}
 
-		if ( ! $this->is_installed() ) {
-			EE::log( 'It seems admin-tools have not yet been installed.' );
-			$this->install();
-			chdir( $this->site_data->site_fs_path );
-		}
+		$this->install();
+		chdir( $this->site_data->site_fs_path );
 
 		$this->move_config_file( 'docker-compose-admin.mustache', $this->site_data->site_fs_path . '/docker-compose-admin.yml' );
 
@@ -153,8 +150,17 @@ class Admin_Tools_Command extends EE_Command {
 	 *
 	 * [--force]
 	 * : Force disabling of admin-tools for a site.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Disable admin tools on site
+	 *     $ ee admin-tools disable example.com
+	 *
+	 *     # Force disable admin tools on site
+	 *     $ ee admin-tools disable example.com --force
+	 *
 	 */
-	public function down( $args, $assoc_args ) {
+	public function disable( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
@@ -240,19 +246,6 @@ class Admin_Tools_Command extends EE_Command {
 	}
 
 	/**
-	 * Function to run install composer dependencies in tools that require it.
-	 *
-	 * @param string $tool_path Directory of the tool that contains `composer.json` file.
-	 */
-	private function composer_install( $tool_path ) {
-
-		chdir( $tool_path );
-		EE::log( 'Installing dependencies. This may take a little while.' );
-		$img_versions = \EE\Utils\get_image_versions();
-		EE::exec( sprintf( 'docker run --rm -it -e USER_ID=0 -e GROUP_ID=0 --user=root -v $PWD:/var/www/htdocs easyengine/php:%s composer update', $img_versions['easyengine/php'] ) );
-	}
-
-	/**
 	 * Function to install index.php file.
 	 *
 	 * @param array $data       Data about url and version from `tools.json`.
@@ -289,13 +282,13 @@ class Admin_Tools_Command extends EE_Command {
 
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pma.zip';
-		$version       = str_replace( '.', '_', $data['version'] );
-		$download_url  = str_replace( '{version}', $version, $data['url'] );
-		$this->download( $download_path, $download_url );
-		$this->extract_zip( $download_path, $temp_dir );
-		$this->fs->rename( $temp_dir . 'phpmyadmin-RELEASE_' . $version, $tool_path );
+		$unzip_folder  = $temp_dir . '/pma';
+		$this->fs->remove( [ $download_path, $unzip_folder ] );
+		$this->download( $download_path, $data['url'] );
+		$this->extract_zip( $download_path, $unzip_folder );
+		$zip_folder_name = scandir( $unzip_folder );
+		$this->fs->rename( $unzip_folder . '/' . array_pop( $zip_folder_name ), $tool_path );
 		$this->move_config_file( 'pma.config.mustache', $tool_path . '/config.inc.php' );
-		$this->composer_install( $tool_path );
 	}
 
 	/**
@@ -308,12 +301,21 @@ class Admin_Tools_Command extends EE_Command {
 
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pra.zip';
-		$download_url  = str_replace( '{version}', $data['version'], $data['url'] );
+		$unzip_folder  = $temp_dir . '/pra';
+		$this->fs->remove( [ $download_path, $unzip_folder ] );
+		$vendor_zip   = $temp_dir . 'vendor.zip';
+		$download_url = str_replace( '{version}', $data['version'], $data['url'] );
 		$this->download( $download_path, $download_url );
-		$this->extract_zip( $download_path, $temp_dir );
-		$this->fs->rename( $temp_dir . 'phpRedisAdmin-' . $data['version'], $tool_path );
+		$this->extract_zip( $download_path, $unzip_folder );
+		$zip_folder_name        = scandir( $unzip_folder );
+		$pra_root_folder        = $unzip_folder . '/' . array_pop( $zip_folder_name );
+		$vendor_path            = $pra_root_folder . '/vendor';
+		$vendor_requirement_url = 'https://github.com/nrk/predis/archive/v1.1.1.zip';
+		$this->download( $vendor_zip, $vendor_requirement_url );
+		$this->extract_zip( $vendor_zip, $pra_root_folder );
+		$this->fs->rename( $pra_root_folder . '/predis-1.1.1', $vendor_path );
+		$this->fs->rename( $pra_root_folder, $tool_path );
 		$this->move_config_file( 'pra.config.mustache', $tool_path . '/includes/config.inc.php' );
-		$this->composer_install( $tool_path );
 	}
 
 	/**
@@ -326,6 +328,7 @@ class Admin_Tools_Command extends EE_Command {
 
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'opcache-gui.php';
+		$this->fs->remove( $download_path );
 		$this->download( $download_path, $data['url'] );
 		$this->fs->rename( $temp_dir . 'opcache-gui.php', $tool_path . '-gui.php' );
 	}

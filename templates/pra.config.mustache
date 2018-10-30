@@ -4,7 +4,7 @@ $config = array(
   'servers' => array(
     array(
       'name'   => getenv('VIRTUAL_HOST'), // Optional name.
-      'host'   => 'redis',
+      'host'   => 'global-redis',
       'port'   => 6379,
       'filter' => '*',
       'scheme' => 'tcp', // Optional. Connection scheme. 'tcp' - for TCP connection, 'unix' - for connection by unix domain socket
