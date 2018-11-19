@@ -127,7 +127,13 @@ class Admin_Tools_Command extends EE_Command {
 		$this->install();
 		chdir( $this->site_data->site_fs_path );
 
-		$this->move_config_file( 'docker-compose-admin.mustache', $this->site_data->site_fs_path . '/docker-compose-admin.yml' );
+		$docker_compose_data  = [
+			'ee_root_dir'   => EE_ROOT_DIR,
+			'db_path'       => DB,
+			'ee_admin_path' => '/var/www/htdocs/ee-admin',
+		];
+		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
+		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
 
 		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
 			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->site_data->site_url ) );

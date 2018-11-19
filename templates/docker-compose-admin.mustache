@@ -4,10 +4,10 @@ services:
 
   php:
     volumes:
-      - "/opt/easyengine/admin-tools:/var/www/htdocs/ee-admin:ro"
-      - "/opt/easyengine/db/ee.sqlite:/opt/easyengine/db/ee.sqlite:ro"
+      - "{{ee_root_dir}}/admin-tools:{{ee_admin_path}}:ro"
+      - "{{db_path}}:{{db_path}}:ro"
 
   nginx:
     volumes:
-      - "/opt/easyengine/admin-tools:/var/www/htdocs/ee-admin:ro"
-      - "/opt/easyengine/db/ee.sqlite:/opt/easyengine/db/ee.sqlite:ro"
+      - "{{ee_root_dir}}/admin-tools:{{ee_admin_path}}:ro"
+      - "{{db_path}}:{{db_path}}:ro"
