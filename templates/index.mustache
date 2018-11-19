@@ -75,6 +75,12 @@ unset( $services['site_url'] );
 $scan  = scandir( '{{ee_admin_path}}' );
 $tools = array_slice( $scan, 2 );
 
+$tools = array_merge( $tools, [ 'nginx_status', 'ping', 'status' ] );
+if( $services['mailhog_enabled'] ) {
+	$tools[] = 'mailhog';
+}
+sort( $tools );
+
 $tools = array_diff( $tools, [ 'index.php' ] );
 
 if ( ! $services['cache_nginx_fullpage'] ) {
