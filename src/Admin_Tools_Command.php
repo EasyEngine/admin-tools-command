@@ -9,6 +9,8 @@
 use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
+use function EE\Auth\Utils\init_global_admin_tools_auth;
+use EE\Utils as EE_Utils;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -100,12 +102,12 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	public function enable( $args, $assoc_args ) {
 
-		\EE\Auth\Utils\init_global_admin_tools_auth();
+		init_global_admin_tools_auth();
 
-		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
+		EE_Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
-		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
-		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		$force           = EE_Utils\get_flag_value( $assoc_args, 'force' );
+		$this->site_data = Site::find( EE_Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
 			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
 		}
@@ -132,7 +134,7 @@ class Admin_Tools_Command extends EE_Command {
 			'db_path'       => DB,
 			'ee_admin_path' => '/var/www/htdocs/ee-admin',
 		];
-		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
+		$docker_compose_admin = EE_Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
 		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
 
 		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
@@ -143,7 +145,7 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( sprintf( 'Error in enabling admin-tools for %s site. Check logs.', $this->site_data->site_url ) );
 		}
 
-		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
+		EE_Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
 	}
 
 	/**
@@ -168,10 +170,10 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	public function disable( $args, $assoc_args ) {
 
-		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
+		EE_Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
 		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
-		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
-		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
+		$force           = EE_Utils\get_flag_value( $assoc_args, 'force' );
+		$this->site_data = Site::find( EE_Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
 			EE::error( sprintf( 'Site %s does not exist / is not enabled.', $args[0] ) );
 		}
@@ -184,7 +186,7 @@ class Admin_Tools_Command extends EE_Command {
 		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->site_data->site_url ) );
 		$this->site_data->admin_tools = 0;
 		$this->site_data->save();
-		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
+		EE_Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
 	}
 
 	/**
@@ -215,7 +217,7 @@ class Admin_Tools_Command extends EE_Command {
 			'timeout'  => 1200,  // 20 minutes ought to be enough for everybody.
 			'filename' => $path,
 		);
-		EE\Utils\http_request( 'GET', $download_url, null, $headers, $options );
+		EE_Utils\http_request( 'GET', $download_url, null, $headers, $options );
 	}
 
 	/**
@@ -263,7 +265,7 @@ class Admin_Tools_Command extends EE_Command {
 			'db_path'       => DB,
 			'ee_admin_path' => '/var/www/htdocs/ee-admin',
 		];
-		$index_file      = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/index.mustache', $index_path_data );
+		$index_file      = EE_Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/index.mustache', $index_path_data );
 		$this->fs->dumpFile( $tool_path . '.php', $index_file );
 	}
 
@@ -286,7 +288,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_pma( $data, $tool_path ) {
 
-		$temp_dir      = EE\Utils\get_temp_dir();
+		$temp_dir      = EE_Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pma.zip';
 		$unzip_folder  = $temp_dir . '/pma';
 		$this->fs->remove( [ $download_path, $unzip_folder ] );
@@ -305,7 +307,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_pra( $data, $tool_path ) {
 
-		$temp_dir      = EE\Utils\get_temp_dir();
+		$temp_dir      = EE_Utils\get_temp_dir();
 		$download_path = $temp_dir . 'pra.zip';
 		$unzip_folder  = $temp_dir . '/pra';
 		$this->fs->remove( [ $download_path, $unzip_folder ] );
@@ -332,7 +334,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_opcache( $data, $tool_path ) {
 
-		$temp_dir      = EE\Utils\get_temp_dir();
+		$temp_dir      = EE_Utils\get_temp_dir();
 		$download_path = $temp_dir . 'opcache-gui.php';
 		$this->fs->remove( $download_path );
 		$this->download( $download_path, $data['url'] );
