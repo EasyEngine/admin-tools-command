@@ -13,11 +13,6 @@ use function EE\Site\Utils\auto_site_name;
 class Admin_Tools_Command extends EE_Command {
 
 	/**
-	 * @var string $command Name of the command being run.
-	 */
-	private $command;
-
-	/**
 	 * @var Filesystem $fs Symfony Filesystem object.
 	 */
 	private $fs;
@@ -103,7 +98,7 @@ class Admin_Tools_Command extends EE_Command {
 		\EE\Auth\Utils\init_global_admin_tools_auth();
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
+		$args            = auto_site_name( $args, 'admin-tools', __FUNCTION__ );
 		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
@@ -169,7 +164,7 @@ class Admin_Tools_Command extends EE_Command {
 	public function disable( $args, $assoc_args ) {
 
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' start' );
-		$args            = auto_site_name( $args, $this->command, __FUNCTION__ );
+		$args            = auto_site_name( $args, 'admin-tools', __FUNCTION__ );
 		$force           = EE\Utils\get_flag_value( $assoc_args, 'force' );
 		$this->site_data = Site::find( EE\Utils\remove_trailing_slash( $args[0] ) );
 		if ( ! $this->site_data || ! $this->site_data->site_enabled ) {
