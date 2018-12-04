@@ -165,9 +165,6 @@ Feature: Admin Tools Command
       And Request on 'wp.test/ee-admin/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
-      And Request on 'wp.test/ee-admin/nginx_status/' should contain following headers:
-        | header           |
-        | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/opcache-gui.php' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
@@ -177,13 +174,16 @@ Feature: Admin Tools Command
       And Request on 'wp.test/ee-admin/pra/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
-      And Request on 'wp.test/ee-admin/ping/' should contain following headers:
-        | header           |
-        | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/pma/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
+      And Request on 'wp.test/ee-admin/ping/' should contain following headers:
+        | header           |
+        | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/status/' should contain following headers:
+        | header           |
+        | HTTP/1.1 200 OK  |
+      And Request on 'wp.test/ee-admin/nginx_status/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
 
@@ -214,22 +214,25 @@ Feature: Admin Tools Command
       And Request on 'wp.test/ee-admin/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
-      And Request on 'wp.test/ee-admin/nginx_status/' should contain following headers:
-        | header           |
-        | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/opcache-gui.php' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/phpinfo.php' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
-      And Request on 'wp.test/ee-admin/ping/' should contain following headers:
+      And Request on 'wp.test/ee-admin/pra/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/pma/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
+      And Request on 'wp.test/ee-admin/ping/' should contain following headers:
+        | header           |
+        | HTTP/1.1 200 OK  |
       And Request on 'wp.test/ee-admin/status/' should contain following headers:
+        | header           |
+        | HTTP/1.1 200 OK  |
+      And Request on 'wp.test/ee-admin/nginx_status/' should contain following headers:
         | header           |
         | HTTP/1.1 200 OK  |
 
@@ -249,6 +252,9 @@ Feature: Admin Tools Command
       And Request on 'wp.test/ee-admin/phpinfo.php' should contain following headers:
         | header                 |
         | HTTP/1.1 404 Not Found |
+      And Request on 'wp.test/ee-admin/pra/' should contain following headers:
+        | header           |
+        | HTTP/1.1 403 Forbidden |
       And Request on 'wp.test/ee-admin/pma/' should contain following headers:
         | header                 |
         | HTTP/1.1 403 Forbidden |
