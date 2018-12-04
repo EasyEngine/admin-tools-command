@@ -42,6 +42,17 @@ Feature: Admin Tools Command
     Then STDOUT should return exactly
     """
     Global auth exists on admin-tools. Use `ee auth list global` to view credentials.
+    Installing admin-tools. This may take some time.
+    Installing index
+    Success: Installed index successfully.
+    Installing phpinfo
+    Success: Installed phpinfo successfully.
+    Installing pma
+    Success: Installed pma successfully.
+    Installing pra
+    Success: Installed pra successfully.
+    Installing opcache
+    Success: Installed opcache successfully.
     Success: admin-tools enabled for php.test site.
     """
       And After delay of 5 seconds
