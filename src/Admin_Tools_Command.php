@@ -9,6 +9,8 @@
 use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
+use function EE\Utils\download;
+use function EE\Utils\extract_zip;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -198,44 +200,6 @@ class Admin_Tools_Command extends EE_Command {
 	}
 
 	/**
-	 * Function to download file to a path.
-	 *
-	 * @param string $path         Path to download the file on.
-	 * @param string $download_url Url to download the file from.
-	 */
-	private function download( $path, $download_url ) {
-
-		$headers = array();
-		$options = array(
-			'timeout'  => 1200,  // 20 minutes ought to be enough for everybody.
-			'filename' => $path,
-		);
-		EE\Utils\http_request( 'GET', $download_url, null, $headers, $options );
-	}
-
-	/**
-	 * Extract zip files.
-	 *
-	 * @param string $zip_file        Path to the zip file.
-	 * @param string $path_to_extract Path where zip needs to be extracted to.
-	 *
-	 * @return bool Success of extraction.
-	 */
-	private function extract_zip( $zip_file, $path_to_extract ) {
-
-		$zip = new ZipArchive;
-		$res = $zip->open( $zip_file );
-		if ( true === $res ) {
-			$zip->extractTo( $path_to_extract );
-			$zip->close();
-
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Place config files from templates to tools.
 	 *
 	 * @param string $config_file   Destination Path where the config file needs to go.
@@ -285,8 +249,8 @@ class Admin_Tools_Command extends EE_Command {
 		$download_path = $temp_dir . 'pma.zip';
 		$unzip_folder  = $temp_dir . '/pma';
 		$this->fs->remove( [ $download_path, $unzip_folder ] );
-		$this->download( $download_path, $data['url'] );
-		$this->extract_zip( $download_path, $unzip_folder );
+		download( $download_path, $data['url'] );
+		extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name = scandir( $unzip_folder );
 		$this->fs->rename( $unzip_folder . '/' . array_pop( $zip_folder_name ), $tool_path );
 		$this->move_config_file( 'pma.config.mustache', $tool_path . '/config.inc.php' );
@@ -306,14 +270,14 @@ class Admin_Tools_Command extends EE_Command {
 		$this->fs->remove( [ $download_path, $unzip_folder ] );
 		$vendor_zip   = $temp_dir . 'vendor.zip';
 		$download_url = str_replace( '{version}', $data['version'], $data['url'] );
-		$this->download( $download_path, $download_url );
-		$this->extract_zip( $download_path, $unzip_folder );
+		download( $download_path, $download_url );
+		extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name        = scandir( $unzip_folder );
 		$pra_root_folder        = $unzip_folder . '/' . array_pop( $zip_folder_name );
 		$vendor_path            = $pra_root_folder . '/vendor';
 		$vendor_requirement_url = 'https://github.com/nrk/predis/archive/v1.1.1.zip';
-		$this->download( $vendor_zip, $vendor_requirement_url );
-		$this->extract_zip( $vendor_zip, $pra_root_folder );
+		download( $vendor_zip, $vendor_requirement_url );
+		extract_zip( $vendor_zip, $pra_root_folder );
 		$this->fs->rename( $pra_root_folder . '/predis-1.1.1', $vendor_path );
 		$this->fs->rename( $pra_root_folder, $tool_path );
 		$this->move_config_file( 'pra.config.mustache', $tool_path . '/includes/config.inc.php' );
@@ -330,7 +294,7 @@ class Admin_Tools_Command extends EE_Command {
 		$temp_dir      = EE\Utils\get_temp_dir();
 		$download_path = $temp_dir . 'opcache-gui.php';
 		$this->fs->remove( $download_path );
-		$this->download( $download_path, $data['url'] );
+		download( $download_path, $data['url'] );
 		$this->fs->rename( $temp_dir . 'opcache-gui.php', $tool_path . '-gui.php' );
 	}
 
