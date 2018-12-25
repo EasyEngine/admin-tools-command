@@ -118,7 +118,7 @@ class Admin_Tools_Command extends EE_Command {
 		$min_req_services = [ 'nginx', 'php' ];
 
 		if ( count( array_intersect( $services, $min_req_services ) ) !== count( $min_req_services ) ) {
-			EE::error( sprintf( '%s site-type of %s-command does not support admin-tools.', $this->site_data->app_sub_type, $this->site_data->site_type ) );
+			EE::error( sprintf( 'Site of type %s does not support admin-tools.', $this->site_data->site_type ) );
 		}
 
 		$this->install();
