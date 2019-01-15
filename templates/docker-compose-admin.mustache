@@ -3,6 +3,9 @@ version: '3.5'
 services:
 
   php:
+    environment:
+      - REDIS_HOST={{redis_host}}
+      - DB_HOST={{db_host}}
     volumes:
       - "{{ee_root_dir}}/admin-tools:{{ee_admin_path}}:ro"
       - "{{db_path}}:{{db_path}}:ro"
