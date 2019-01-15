@@ -128,6 +128,8 @@ class Admin_Tools_Command extends EE_Command {
 			'ee_root_dir'   => EE_ROOT_DIR,
 			'db_path'       => DB,
 			'ee_admin_path' => '/var/www/htdocs/ee-admin',
+			'redis_host'    => $this->site_data->cache_host,
+			'db_host'       => $this->site_data->db_host,
 		];
 		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
 		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
