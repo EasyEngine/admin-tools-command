@@ -22,9 +22,7 @@ class UpdateConfigWithEnv extends Base {
 		if ( $this->is_first_execution ) {
 			$this->skip_this_migration = true;
 		}
-		if ( $this->fs->exists( EE_ROOT_DIR . '/admin-tools/index.php' ) ) {
-			$this->skip_this_migration = false;
-		}
+		$this->skip_this_migration = ( $this->fs->exists( EE_ROOT_DIR . '/admin-tools/index.php' ) ) ? false : true;
 	}
 
 	/**
