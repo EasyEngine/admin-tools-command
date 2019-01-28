@@ -23,21 +23,6 @@ ee admin-tools
 
 
 
-### ee admin-tools install
-
-Installs admin tools for EasyEngine.
-
-~~~
-ee admin-tools install 
-~~~
-
-**EXAMPLES**
-
-    # Install admin tools
-    $ ee admin-tools install
-
-
-
 ### ee admin-tools enable
 
 Enables admin tools on site.
@@ -93,7 +78,6 @@ ee admin-tools disable [<site-name>] [--force]
 We appreciate you taking the initiative to contribute to this project.
 
 Contributing isn’t limited to just code. We encourage you to contribute in the way that best fits your abilities, by writing tutorials, giving a demo at your local meetup, helping other users with their support questions, or revising our documentation.
-
 
 ### Reporting a bug
 

@@ -20,7 +20,6 @@
         "bundled": true,
         "commands": [
             "admin-tools",
-            "admin-tools install",
             "admin-tools enable",
             "admin-tools disable"
         ]
