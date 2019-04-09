@@ -71,9 +71,9 @@ $services = populate_site_info();
 unset( $services['id'] );
 unset( $services['site_url'] );
 
-
-$scan  = scandir( '{{ee_admin_path}}' );
-$scan  = array_diff( $scan, [ '.', '..', 'index.php' ] );
+$scan_dir = ( file_exists ( '/var/www/htdocs/current/ee-admin' ) ) ? '/var/www/htdocs/current/ee-admin' : '/var/www/htdocs/ee-admin';
+$scan     = scandir( $scan_dir );
+$scan     = array_diff( $scan, [ '.', '..', 'index.php' ] );
 
 $tools = array_merge( $scan, [ 'nginx_status', 'ping', 'status' ] );
 if ( $services['mailhog_enabled'] ) {
