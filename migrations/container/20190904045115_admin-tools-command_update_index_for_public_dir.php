@@ -8,7 +8,7 @@ use EE\Migration\SiteContainers;
 use EE\RevertableStepProcessor;
 use EE\Model\Site;
 
-class UpdateIndexForPubliDir extends Base {
+class UpdateIndexForPublicDir extends Base {
 
 	private $sites;
 	/** @var RevertableStepProcessor $rsp Keeps track of migration state. Reverts on error */
