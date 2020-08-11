@@ -11,6 +11,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
 use function EE\Utils\download;
 use function EE\Utils\extract_zip;
+use function EE\Utils\random_password;
 
 class Admin_Tools_Command extends EE_Command {
 
@@ -255,7 +256,12 @@ class Admin_Tools_Command extends EE_Command {
 		extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name = scandir( $unzip_folder );
 		$this->fs->rename( $unzip_folder . '/' . array_pop( $zip_folder_name ), $tool_path );
-		$this->move_config_file( 'pma.config.mustache', $tool_path . '/config.inc.php' );
+
+		$pma_config_data = [
+			'blowfish_secret' => random_password( 32 ),
+		];
+		$pma_config      = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/pma.config.mustache', $pma_config_data );
+		$this->fs->dumpFile( $tool_path . '/config.inc.php', $pma_config );
 	}
 
 	/**
