@@ -9,7 +9,6 @@
 use EE\Model\Site;
 use Symfony\Component\Filesystem\Filesystem;
 use function EE\Site\Utils\auto_site_name;
-use function EE\Utils\docker_compose_with_custom;
 use function EE\Utils\download;
 use function EE\Utils\extract_zip;
 use function EE\Utils\random_password;
@@ -115,7 +114,7 @@ class Admin_Tools_Command extends EE_Command {
 
 		chdir( $this->site_data->site_fs_path );
 
-		$launch           = EE::launch( docker_compose_with_custom() . ' config --services' );
+		$launch           = EE::launch( \EE_DOCKER::docker_compose_with_custom() . ' config --services' );
 		$services         = explode( PHP_EOL, trim( $launch->stdout ) );
 		$min_req_services = [ 'nginx', 'php' ];
 
@@ -136,7 +135,7 @@ class Admin_Tools_Command extends EE_Command {
 		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
 		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
 
-		if ( EE::exec( docker_compose_with_custom( ['docker-compose-admin.yml'] ) . ' up -d nginx' ) ) {
+		if ( EE::exec( \EE_DOCKER::docker_compose_with_custom( ['docker-compose-admin.yml'] ) . ' up -d nginx' ) ) {
 			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->site_data->site_url ) );
 			$this->site_data->admin_tools = 1;
 			$this->site_data->save();
