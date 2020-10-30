@@ -128,7 +128,7 @@ class Admin_Tools_Command extends EE_Command {
 		$docker_compose_data  = [
 			'ee_root_dir'   => EE_ROOT_DIR,
 			'db_path'       => DB,
-			'ee_admin_path' => $this->site_data->site_container_fs_path . '/ee-admin',
+			'ee_admin_path' => '/var/www/htdocs/ee-admin',
 			'redis_host'    => $this->site_data->cache_host,
 			'db_host'       => $this->site_data->db_host,
 		];
