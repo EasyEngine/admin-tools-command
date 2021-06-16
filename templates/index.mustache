@@ -71,7 +71,7 @@ $services = populate_site_info();
 unset( $services['id'] );
 unset( $services['site_url'] );
 
-$scan_dir = ( file_exists ( '/var/www/htdocs/current/ee-admin' ) ) ? '/var/www/htdocs/current/ee-admin' : '/var/www/htdocs/ee-admin';
+$scan_dir = '/var/www/htdocs/ee-admin';
 $scan     = scandir( $scan_dir );
 $scan     = array_diff( $scan, [ '.', '..', 'index.php' ] );
 

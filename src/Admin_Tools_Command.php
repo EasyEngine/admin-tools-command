@@ -114,7 +114,7 @@ class Admin_Tools_Command extends EE_Command {
 
 		chdir( $this->site_data->site_fs_path );
 
-		$launch           = EE::launch( 'docker-compose config --services' );
+		$launch           = EE::launch( \EE_DOCKER::docker_compose_with_custom() . ' config --services' );
 		$services         = explode( PHP_EOL, trim( $launch->stdout ) );
 		$min_req_services = [ 'nginx', 'php' ];
 
@@ -128,14 +128,14 @@ class Admin_Tools_Command extends EE_Command {
 		$docker_compose_data  = [
 			'ee_root_dir'   => EE_ROOT_DIR,
 			'db_path'       => DB,
-			'ee_admin_path' => $this->site_data->site_container_fs_path . '/ee-admin',
+			'ee_admin_path' => '/var/www/htdocs/ee-admin',
 			'redis_host'    => $this->site_data->cache_host,
 			'db_host'       => $this->site_data->db_host,
 		];
 		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
 		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
 
-		if ( EE::exec( 'docker-compose -f docker-compose.yml -f docker-compose-admin.yml up -d nginx' ) ) {
+		if ( EE::exec( \EE_DOCKER::docker_compose_with_custom( ['docker-compose-admin.yml'] ) . ' up -d nginx' ) ) {
 			EE::success( sprintf( 'admin-tools enabled for %s site.', $this->site_data->site_url ) );
 			$this->site_data->admin_tools = 1;
 			$this->site_data->save();
