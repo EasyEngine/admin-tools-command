@@ -23,5 +23,8 @@
             "admin-tools enable",
             "admin-tools disable"
         ]
+    },
+    "require-dev": {
+        "behat/behat": "^3.14"
     }
 }
