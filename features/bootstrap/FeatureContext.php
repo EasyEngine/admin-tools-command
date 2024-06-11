@@ -6,23 +6,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 class FeatureContext implements Context, SnippetAcceptingContext
 {
     private $command_output;
-    private static $easyengine_installed = false;
     private static $site_created = false;
-
-    /**
-     * @Given I have installed EasyEngine if not installed
-     */
-    public function iHaveInstalledEasyengineIfNotInstalled()
-    {
-        if (!self::$easyengine_installed) {
-            $install_command = 'wget -qO ee https://rt.cx/ee4 && sudo bash ee && sudo rm ee';
-            $install_output = shell_exec($install_command);
-            if (!file_exists('/usr/local/bin/ee')) {
-                throw new Exception("EasyEngine could not be installed.");
-            }
-            self::$easyengine_installed = true;
-        }
-    }
 
     /**
      * @Given I have created a WordPress site at :site
