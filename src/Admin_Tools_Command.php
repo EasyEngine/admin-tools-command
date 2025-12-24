@@ -281,15 +281,25 @@ class Admin_Tools_Command extends EE_Command {
 		// Fetch the latest release info from GitHub API to get the zipball URL.
 		if ( 'latest' === $data['version'] ) {
 			$download_url = null;
-			$release_info = @file_get_contents( $data['url'], false, stream_context_create( [
-				'http' => [
+			$context      = stream_context_create( [
+				'http'  => [
 					'header' => 'User-Agent: EasyEngine',
 				],
-			] ) );
+				'https' => [
+					'header' => 'User-Agent: EasyEngine',
+				],
+			] );
+			$release_info = file_get_contents( $data['url'], false, $context );
 
-			if ( ! empty( $release_info ) ) {
+			if ( false === $release_info ) {
+				$last_error = error_get_last();
+				$error_msg  = isset( $last_error['message'] ) ? $last_error['message'] : 'Unknown error';
+				EE::debug( sprintf( 'Failed to fetch phpRedisAdmin release info: %s', $error_msg ) );
+			} elseif ( ! empty( $release_info ) ) {
 				$release_data = json_decode( $release_info, true );
-				if ( ! empty( $release_data['zipball_url'] ) ) {
+				if ( JSON_ERROR_NONE !== json_last_error() ) {
+					EE::debug( sprintf( 'Failed to parse phpRedisAdmin release info: %s', json_last_error_msg() ) );
+				} elseif ( ! empty( $release_data['zipball_url'] ) ) {
 					$download_url = $release_data['zipball_url'];
 				}
 			}
@@ -303,7 +313,8 @@ class Admin_Tools_Command extends EE_Command {
 				$download_url = 'https://github.com/erikdubbelboer/phpRedisAdmin/archive/v' . $data['fallback_version'] . '.zip';
 			}
 		} else {
-			$download_url = str_replace( '{version}', $data['version'], $data['url'] );
+			// For specific versions, construct the archive URL directly.
+			$download_url = 'https://github.com/erikdubbelboer/phpRedisAdmin/archive/v' . $data['version'] . '.zip';
 		}
 
 		download( $download_path, $download_url );
