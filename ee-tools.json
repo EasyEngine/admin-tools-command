@@ -12,8 +12,9 @@
         "version": "latest"
     },
     "pra": {
-        "url": "https://github.com/erikdubbelboer/phpRedisAdmin/archive/v{version}.zip",
-        "version": "1.11.0"
+        "url": "https://api.github.com/repos/erikdubbelboer/phpRedisAdmin/releases/latest",
+        "version": "latest",
+        "fallback_version": "1.26.0"
     },
     "opcache": {
         "url": "https://raw.githubusercontent.com/amnuts/opcache-gui/master/index.php",
