@@ -276,8 +276,47 @@ class Admin_Tools_Command extends EE_Command {
 		$download_path = $temp_dir . 'pra.zip';
 		$unzip_folder  = $temp_dir . '/pra';
 		$this->fs->remove( [ $download_path, $unzip_folder ] );
-		$vendor_zip   = $temp_dir . 'vendor.zip';
-		$download_url = str_replace( '{version}', $data['version'], $data['url'] );
+		$vendor_zip = $temp_dir . 'vendor.zip';
+
+		// Fetch the latest release info from GitHub API to get the zipball URL.
+		if ( 'latest' === $data['version'] ) {
+			$download_url = null;
+			$context      = stream_context_create( [
+				'http'  => [
+					'header' => 'User-Agent: EasyEngine',
+				],
+				'https' => [
+					'header' => 'User-Agent: EasyEngine',
+				],
+			] );
+			$release_info = file_get_contents( $data['url'], false, $context );
+
+			if ( false === $release_info ) {
+				$last_error = error_get_last();
+				$error_msg  = isset( $last_error['message'] ) ? $last_error['message'] : 'Unknown error';
+				EE::debug( sprintf( 'Failed to fetch phpRedisAdmin release info: %s', $error_msg ) );
+			} elseif ( ! empty( $release_info ) ) {
+				$release_data = json_decode( $release_info, true );
+				if ( JSON_ERROR_NONE !== json_last_error() ) {
+					EE::debug( sprintf( 'Failed to parse phpRedisAdmin release info: %s', json_last_error_msg() ) );
+				} elseif ( ! empty( $release_data['zipball_url'] ) ) {
+					$download_url = $release_data['zipball_url'];
+				}
+			}
+
+			// Fallback to a known stable version if API fails.
+			if ( empty( $download_url ) ) {
+				if ( empty( $data['fallback_version'] ) ) {
+					EE::error( 'Unable to fetch latest phpRedisAdmin release info from GitHub and no fallback version configured.' );
+				}
+				EE::warning( 'Unable to fetch latest phpRedisAdmin release info from GitHub. Falling back to version ' . $data['fallback_version'] . '.' );
+				$download_url = 'https://github.com/erikdubbelboer/phpRedisAdmin/archive/v' . $data['fallback_version'] . '.zip';
+			}
+		} else {
+			// For specific versions, construct the archive URL directly.
+			$download_url = 'https://github.com/erikdubbelboer/phpRedisAdmin/archive/v' . $data['version'] . '.zip';
+		}
+
 		download( $download_path, $download_url );
 		extract_zip( $download_path, $unzip_folder );
 		$zip_folder_name        = scandir( $unzip_folder );
