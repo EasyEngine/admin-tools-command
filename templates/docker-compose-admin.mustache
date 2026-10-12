@@ -8,9 +8,10 @@ services:
       - DB_HOST={{db_host}}
     volumes:
       - "{{ee_root_dir}}/admin-tools:{{ee_admin_path}}:ro"
-      - "{{db_path}}:{{db_path}}:ro"
+      {{#site_data_dir}}
+      - "{{site_data_dir}}:{{container_data_dir}}:ro"
+      {{/site_data_dir}}
 
   nginx:
     volumes:
       - "{{ee_root_dir}}/admin-tools:{{ee_admin_path}}:ro"
-      - "{{db_path}}:{{db_path}}:ro"
