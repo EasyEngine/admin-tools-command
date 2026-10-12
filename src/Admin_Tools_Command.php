@@ -242,8 +242,12 @@ class Admin_Tools_Command extends EE_Command {
 			'mailhog'    => (bool) $mailhog_enabled,
 			'page_cache' => (bool) $page_cache,
 		];
+		$data_dir  = $site_fs_path . '/' . self::SITE_DATA_DIR;
 		$fs        = new Filesystem();
-		$fs->dumpFile( $site_fs_path . '/' . self::SITE_DATA_DIR . '/site.json', json_encode( $site_data ) . "\n" );
+		$fs->dumpFile( $data_dir . '/site.json', json_encode( $site_data ) . "\n" );
+		// Not left to the umask: www-data in the php container must be able to read them.
+		$fs->chmod( $data_dir, 0755 );
+		$fs->chmod( $data_dir . '/site.json', 0644 );
 	}
 
 	/**
