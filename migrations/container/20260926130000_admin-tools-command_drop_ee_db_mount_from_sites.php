@@ -69,12 +69,20 @@ class DropEeDbMountFromSites extends Base {
 			);
 		}
 
+		// Fatal on purpose: dropping the mounts under the old index breaks it on every site, and core reverts and re-runs this migration next time.
 		if ( ! self::$rsp->execute() ) {
 			throw new \Exception( 'Unable to run drop-ee-db-mount-from-sites migration.' );
 		}
 
+		// Decided from the containers, not the compose file: an interrupted earlier run leaves the file current and the mount in place.
+		$mounted = self::containers_mounting_db();
+
 		foreach ( $this->sites as $site ) {
-			self::migrate_site( $site );
+			self::migrate_site( $site, $mounted );
+		}
+
+		foreach ( Site::where( 'admin_tools', 0 ) as $site ) {
+			self::drop_lingering_mount( $site, $mounted );
 		}
 	}
 
@@ -90,9 +98,10 @@ class DropEeDbMountFromSites extends Base {
 	 * Writes the site's flags file and recreates its php and nginx without the database mount.
 	 * A failure only warns, so one broken site doesn't block the upgrade of the others.
 	 *
-	 * @param Site $site Site with admin-tools enabled.
+	 * @param Site       $site    Site with admin-tools enabled.
+	 * @param array|null $mounted Result of containers_mounting_db().
 	 */
-	public static function migrate_site( $site ) {
+	public static function migrate_site( $site, $mounted = null ) {
 
 		$fs            = new Filesystem();
 		$admin_compose = $site->site_fs_path . '/docker-compose-admin.yml';
@@ -103,41 +112,173 @@ class DropEeDbMountFromSites extends Base {
 			return;
 		}
 
-		\Admin_Tools_Command::write_site_data( $site->site_fs_path, $site->mailhog_enabled, $site->cache_nginx_fullpage );
+		$old_compose = null;
+		$written     = false;
+		try {
+			\Admin_Tools_Command::write_site_data( $site->site_fs_path, $site->mailhog_enabled, $site->cache_nginx_fullpage );
 
-		// Without it the site doesn't use admin-tools compose (e.g. custom-compose); `admin-tools enable` writes a fresh one.
-		if ( ! $fs->exists( $admin_compose ) ) {
+			// Without it the site doesn't use admin-tools compose (e.g. custom-compose); `admin-tools enable` writes a fresh one.
+			if ( ! $fs->exists( $admin_compose ) ) {
+				return;
+			}
+
+			$old_compose = file_get_contents( $admin_compose );
+			if ( false === $old_compose ) {
+				throw new \Exception( "Could not read $admin_compose." );
+			}
+			$new_compose = \Admin_Tools_Command::render_admin_compose( $site->site_fs_path, $site->cache_host, $site->db_host );
+			if ( $old_compose !== $new_compose ) {
+				$fs->copy( $admin_compose, EE_BACKUP_DIR . '/' . $site->site_url . '/docker-compose-admin.yml.with-db', true );
+				$written = true;
+				$fs->dumpFile( $admin_compose, $new_compose );
+			}
+
+			// A disabled site picks the new file up on `ee site enable`, which re-enables admin-tools.
+			if ( ! $site->site_enabled ) {
+				return;
+			}
+
+			$containers = self::site_mounted_containers( $site, $mounted );
+			if ( null === $containers ) {
+				$recreate = $written;
+				$start    = true;
+			} else {
+				$recreate = ! empty( $containers );
+				$start    = in_array( true, $containers, true );
+			}
+			if ( ! $recreate ) {
+				return;
+			}
+
+			if ( self::recreate( $site, [ 'docker-compose-admin.yml' ], 'nginx', $start ) ) {
+				return;
+			}
+
+			if ( $written ) {
+				$fs->dumpFile( $admin_compose, $old_compose );
+				$written = false;
+				self::recreate( $site, [ 'docker-compose-admin.yml' ], 'nginx', $start );
+			}
+			EE::warning( sprintf( 'Could not recreate the containers of %1$s without the EasyEngine database mount. Run `ee admin-tools enable %1$s --force` to retry.', $site->site_url ) );
+		} catch ( \Throwable $e ) {
+			if ( $written ) {
+				try {
+					$fs->dumpFile( $admin_compose, $old_compose );
+				} catch ( \Throwable $restore_error ) {
+					EE::debug( $restore_error->getMessage() );
+				}
+			}
+			EE::warning( sprintf( 'Could not migrate admin-tools of %1$s (%2$s). Run `ee admin-tools enable %1$s --force` to retry.', $site->site_url, $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Recreates php and nginx from the site's normal compose when they still mount the database but admin-tools is off
+	 * (e.g. an older `admin-tools disable` whose recreate failed), the same way `admin-tools disable` does.
+	 *
+	 * @param Site       $site    Site with admin-tools disabled.
+	 * @param array|null $mounted Result of containers_mounting_db().
+	 */
+	public static function drop_lingering_mount( $site, $mounted ) {
+
+		if ( ! $site->site_enabled || ! is_dir( $site->site_fs_path ) ) {
 			return;
 		}
 
-		$old_compose = file_get_contents( $admin_compose );
-		$new_compose = \Admin_Tools_Command::render_admin_compose( $site->site_fs_path, $site->cache_host, $site->db_host );
-		if ( $old_compose === $new_compose ) {
-			return;
+		try {
+			$containers = self::site_mounted_containers( $site, $mounted );
+			if ( empty( $containers ) ) {
+				return;
+			}
+			if ( self::recreate( $site, [], 'nginx php', in_array( true, $containers, true ) ) ) {
+				return;
+			}
+			$reason = 'docker-compose failed';
+		} catch ( \Throwable $e ) {
+			$reason = $e->getMessage();
 		}
-		$fs->copy( $admin_compose, EE_BACKUP_DIR . '/' . $site->site_url . '/docker-compose-admin.yml.with-db', true );
-		$fs->dumpFile( $admin_compose, $new_compose );
+		EE::warning( sprintf( 'Could not recreate the containers of %1$s without the EasyEngine database mount (%2$s). Run `ee admin-tools disable %1$s --force` to retry.', $site->site_url, $reason ) );
+	}
 
-		// A disabled site picks the new file up on `ee site enable`, which re-enables admin-tools.
-		if ( ! $site->site_enabled ) {
-			return;
+	/**
+	 * Containers of any site that mount the EE database.
+	 *
+	 * @return array|null Container ID => whether it is up; null when docker can't be queried.
+	 */
+	private static function containers_mounting_db() {
+
+		// Matches bind mounts by host or container path; the old compose used the same path for both.
+		$launch = EE::launch( sprintf( "docker ps -a --no-trunc --filter %s --format '{{.ID}} {{.State}}'", escapeshellarg( 'volume=' . DB ) ) );
+		if ( $launch->return_code ) {
+			EE::debug( 'Could not list the containers that mount the EasyEngine database.' );
+
+			return null;
 		}
 
-		chdir( $site->site_fs_path );
-		$up = \EE_DOCKER::docker_compose_with_custom( [ 'docker-compose-admin.yml' ] ) . ' up -d nginx';
-		if ( EE::exec( $up ) ) {
+		$containers = [];
+		foreach ( array_filter( explode( "\n", trim( $launch->stdout ) ) ) as $line ) {
+			$parts                   = explode( ' ', trim( $line ), 2 );
+			$state                   = isset( $parts[1] ) ? $parts[1] : '';
+			$containers[ $parts[0] ] = ! in_array( $state, [ 'created', 'exited', 'dead' ], true );
+		}
+
+		return $containers;
+	}
+
+	/**
+	 * The site's containers that mount the EE database.
+	 *
+	 * @param Site       $site    Site.
+	 * @param array|null $mounted Result of containers_mounting_db().
+	 *
+	 * @return array|null Container ID => whether it is up; null when unknown.
+	 * @throws \Exception
+	 */
+	private static function site_mounted_containers( $site, $mounted ) {
+
+		if ( empty( $mounted ) ) {
+			return $mounted;
+		}
+		if ( ! chdir( $site->site_fs_path ) ) {
+			throw new \Exception( "Could not change to $site->site_fs_path." );
+		}
+		$launch = EE::launch( \EE_DOCKER::docker_compose_with_custom() . ' ps -a -q' );
+		if ( $launch->return_code ) {
+			return null;
+		}
+
+		return array_intersect_key( $mounted, array_flip( array_filter( array_map( 'trim', explode( "\n", $launch->stdout ) ) ) ) );
+	}
+
+	/**
+	 * Recreates the given services; when none of the old containers was up they are recreated but not started.
+	 *
+	 * @param Site   $site     Site.
+	 * @param array  $files    Compose files to add to the site's own.
+	 * @param string $services Services to bring up (dependencies follow).
+	 * @param bool   $start    Whether to start them.
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private static function recreate( $site, $files, $services, $start ) {
+
+		if ( ! chdir( $site->site_fs_path ) ) {
+			throw new \Exception( "Could not change to $site->site_fs_path." );
+		}
+		$up = \EE_DOCKER::docker_compose_with_custom( $files ) . ( $start ? ' up -d ' : ' up --no-start ' ) . $services;
+		if ( ! EE::exec( $up ) ) {
+			return false;
+		}
+		if ( $start ) {
 			// nginx resolves php once at start; reload in case compose recreated php but not nginx.
 			try {
 				SiteContainers::reload_nginx( $site->site_fs_path );
 			} catch ( \Exception $e ) {
-				EE::warning( sprintf( 'Could not reload nginx of %s. Run `ee site reload %s --nginx`.', $site->site_url, $site->site_url ) );
+				EE::warning( sprintf( 'Could not reload nginx of %1$s. Run `ee site reload %1$s --nginx`.', $site->site_url ) );
 			}
-
-			return;
 		}
 
-		$fs->dumpFile( $admin_compose, $old_compose );
-		EE::exec( $up );
-		EE::warning( sprintf( 'Could not recreate the containers of %1$s without the EasyEngine database mount. Run `ee admin-tools enable %1$s --force` to retry.', $site->site_url ) );
+		return true;
 	}
 }
