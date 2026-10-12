@@ -20,6 +20,9 @@ class DropEeDbMountFromSites extends Base {
 	/** @var array $sites Sites with admin-tools enabled. */
 	private $sites;
 
+	/** @var bool $query_warned Whether the failed container query was already reported. */
+	private static $query_warned = false;
+
 	public function __construct() {
 
 		parent::__construct();
@@ -75,7 +78,8 @@ class DropEeDbMountFromSites extends Base {
 		}
 
 		// Decided from the containers, not the compose file: an interrupted earlier run leaves the file current and the mount in place.
-		$mounted = self::containers_mounting_db();
+		self::$query_warned = false;
+		$mounted            = self::containers_mounting_db();
 
 		foreach ( $this->sites as $site ) {
 			self::migrate_site( $site, $mounted );
@@ -84,6 +88,8 @@ class DropEeDbMountFromSites extends Base {
 		foreach ( Site::where( 'admin_tools', 0 ) as $site ) {
 			self::drop_lingering_mount( $site, $mounted );
 		}
+
+		self::warn_remaining_mounts();
 	}
 
 	/**
@@ -144,13 +150,14 @@ class DropEeDbMountFromSites extends Base {
 				$start    = true;
 			} else {
 				$recreate = ! empty( $containers );
-				$start    = in_array( true, $containers, true );
+				$start    = self::any_up( $containers );
 			}
 			if ( ! $recreate ) {
 				return;
 			}
 
-			if ( self::recreate( $site, [ 'docker-compose-admin.yml' ], 'nginx', $start ) ) {
+			// With nothing to restore, retry: a failed recreate can leave the site's old containers removed.
+			if ( self::recreate( $site, [ 'docker-compose-admin.yml' ], 'nginx', $start, ! $written ) ) {
 				return;
 			}
 
@@ -187,10 +194,13 @@ class DropEeDbMountFromSites extends Base {
 
 		try {
 			$containers = self::site_mounted_containers( $site, $mounted );
+			if ( null === $containers && null !== $mounted ) {
+				EE::warning( sprintf( 'Could not list the containers of %1$s to check them for the EasyEngine database mount. Run `ee admin-tools disable %1$s --force` if they still have it.', $site->site_url ) );
+			}
 			if ( empty( $containers ) ) {
 				return;
 			}
-			if ( self::recreate( $site, [], 'nginx php', in_array( true, $containers, true ) ) ) {
+			if ( self::recreate( $site, [], 'nginx php', self::any_up( $containers ), true ) ) {
 				return;
 			}
 			$reason = 'docker-compose failed';
@@ -203,26 +213,59 @@ class DropEeDbMountFromSites extends Base {
 	/**
 	 * Containers of any site that mount the EE database.
 	 *
-	 * @return array|null Container ID => whether it is up; null when docker can't be queried.
+	 * @return array|null Container ID => [ 'name' => name, 'up' => bool ]; null when docker can't be queried.
 	 */
 	private static function containers_mounting_db() {
 
 		// Matches bind mounts by host or container path; the old compose used the same path for both.
-		$launch = EE::launch( sprintf( "docker ps -a --no-trunc --filter %s --format '{{.ID}} {{.State}}'", escapeshellarg( 'volume=' . DB ) ) );
+		// {{.Status}} rather than {{.State}}, which older docker clients don't have.
+		$launch = EE::launch( sprintf( "docker ps -a --no-trunc --filter %s --format '{{.ID}} {{.Names}} {{.Status}}'", escapeshellarg( 'volume=' . DB ) ) );
 		if ( $launch->return_code ) {
-			EE::debug( 'Could not list the containers that mount the EasyEngine database.' );
+			if ( ! self::$query_warned ) {
+				self::$query_warned = true;
+				EE::warning( 'Could not check which containers still mount the EasyEngine database. Run `ee admin-tools enable <site> --force` (or `disable` for sites without admin-tools) for sites whose php or nginx containers still have it.' );
+			}
 
 			return null;
 		}
 
 		$containers = [];
 		foreach ( array_filter( explode( "\n", trim( $launch->stdout ) ) ) as $line ) {
-			$parts                   = explode( ' ', trim( $line ), 2 );
-			$state                   = isset( $parts[1] ) ? $parts[1] : '';
-			$containers[ $parts[0] ] = ! in_array( $state, [ 'created', 'exited', 'dead' ], true );
+			$parts                   = explode( ' ', trim( $line ), 3 );
+			$status                  = isset( $parts[2] ) ? $parts[2] : '';
+			$containers[ $parts[0] ] = [
+				'name' => isset( $parts[1] ) ? $parts[1] : $parts[0],
+				'up'   => 0 === strpos( $status, 'Up' ) || 0 === strpos( $status, 'Restarting' ),
+			];
 		}
 
 		return $containers;
+	}
+
+	/**
+	 * Warns once about containers that still mount the EE database after all sites were handled.
+	 */
+	private static function warn_remaining_mounts() {
+
+		$remaining = self::containers_mounting_db();
+		if ( empty( $remaining ) ) {
+			return;
+		}
+		$names = array_column( $remaining, 'name' );
+		sort( $names );
+		EE::warning( sprintf( 'These containers still mount the EasyEngine database: %s. Run `ee admin-tools enable <site> --force` for their site (`ee admin-tools disable <site> --force` if it has admin-tools off), or recreate the containers.', implode( ', ', $names ) ) );
+	}
+
+	/**
+	 * Whether any of the containers is up.
+	 *
+	 * @param array $containers Containers as returned by containers_mounting_db().
+	 *
+	 * @return bool
+	 */
+	private static function any_up( $containers ) {
+
+		return in_array( true, array_column( $containers, 'up' ), true );
 	}
 
 	/**
@@ -231,7 +274,7 @@ class DropEeDbMountFromSites extends Base {
 	 * @param Site       $site    Site.
 	 * @param array|null $mounted Result of containers_mounting_db().
 	 *
-	 * @return array|null Container ID => whether it is up; null when unknown.
+	 * @return array|null Same shape as containers_mounting_db(); null when unknown.
 	 * @throws \Exception
 	 */
 	private static function site_mounted_containers( $site, $mounted ) {
@@ -257,17 +300,18 @@ class DropEeDbMountFromSites extends Base {
 	 * @param array  $files    Compose files to add to the site's own.
 	 * @param string $services Services to bring up (dependencies follow).
 	 * @param bool   $start    Whether to start them.
+	 * @param bool   $retry    Whether to try once more after a failure.
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function recreate( $site, $files, $services, $start ) {
+	private static function recreate( $site, $files, $services, $start, $retry = false ) {
 
 		if ( ! chdir( $site->site_fs_path ) ) {
 			throw new \Exception( "Could not change to $site->site_fs_path." );
 		}
 		$up = \EE_DOCKER::docker_compose_with_custom( $files ) . ( $start ? ' up -d ' : ' up --no-start ' ) . $services;
-		if ( ! EE::exec( $up ) ) {
+		if ( ! EE::exec( $up ) && ( ! $retry || ! EE::exec( $up ) ) ) {
 			return false;
 		}
 		if ( $start ) {
