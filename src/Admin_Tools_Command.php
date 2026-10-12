@@ -185,7 +185,9 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( sprintf( 'admin-tools already seem to be disabled for %s', $this->site_data->site_url ) );
 		}
 
-		EE_DOCKER::docker_compose_up( $this->site_data->site_fs_path, [ 'nginx', 'php' ] );
+		if ( ! EE_DOCKER::docker_compose_up( $this->site_data->site_fs_path, [ 'nginx', 'php' ] ) ) {
+			EE::error( sprintf( 'Error in disabling admin-tools for %s site. Check logs.', $this->site_data->site_url ) );
+		}
 		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->site_data->site_url ) );
 		$this->site_data->admin_tools = 0;
 		$this->site_data->save();
