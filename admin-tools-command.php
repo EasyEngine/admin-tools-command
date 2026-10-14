@@ -19,3 +19,7 @@ if ( file_exists( $autoload ) ) {
 }
 
 EE::add_command( 'admin-tools', 'Admin_Tools_Command' );
+
+// mailhog doesn't touch the admin-tools compose, so refresh the index flags it owns after each toggle.
+EE::add_hook( 'after_invoke:mailhog enable', [ 'Admin_Tools_Command', 'sync_site_data' ] );
+EE::add_hook( 'after_invoke:mailhog disable', [ 'Admin_Tools_Command', 'sync_site_data' ] );

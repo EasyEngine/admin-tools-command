@@ -15,6 +15,10 @@ use function EE\Utils\random_password;
 
 class Admin_Tools_Command extends EE_Command {
 
+	/** Host dir (relative to the site root) and container dir of the per-site flags the index reads. */
+	const SITE_DATA_DIR      = 'config/admin-tools';
+	const CONTAINER_DATA_DIR = '/etc/easyengine/admin-tools';
+
 	/**
 	 * @var Filesystem $fs Symfony Filesystem object.
 	 */
@@ -74,6 +78,13 @@ class Admin_Tools_Command extends EE_Command {
 				EE::success( "Installed $tool successfully." );
 			}
 		}
+
+		// An index left by an older release reads the EE database, which is no longer mounted into sites.
+		$index_file = ADMIN_TOOL_DIR . '/index.php';
+		$index      = self::render_index();
+		if ( ! is_file( $index_file ) || file_get_contents( $index_file ) !== $index ) {
+			$this->fs->dumpFile( $index_file, $index );
+		}
 	}
 
 	/**
@@ -125,14 +136,8 @@ class Admin_Tools_Command extends EE_Command {
 		$this->install();
 		chdir( $this->site_data->site_fs_path );
 
-		$docker_compose_data  = [
-			'ee_root_dir'   => EE_ROOT_DIR,
-			'db_path'       => DB,
-			'ee_admin_path' => '/var/www/htdocs/ee-admin',
-			'redis_host'    => $this->site_data->cache_host,
-			'db_host'       => $this->site_data->db_host,
-		];
-		$docker_compose_admin = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
+		self::write_site_data( $this->site_data->site_fs_path, $this->site_data->mailhog_enabled, $this->site_data->cache_nginx_fullpage );
+		$docker_compose_admin = self::render_admin_compose( $this->site_data->site_fs_path, $this->site_data->cache_host, $this->site_data->db_host );
 		$this->fs->dumpFile( $this->site_data->site_fs_path . '/docker-compose-admin.yml', $docker_compose_admin );
 
 		if ( EE::exec( \EE_DOCKER::docker_compose_with_custom( ['docker-compose-admin.yml'] ) . ' up -d nginx' ) ) {
@@ -180,11 +185,88 @@ class Admin_Tools_Command extends EE_Command {
 			EE::error( sprintf( 'admin-tools already seem to be disabled for %s', $this->site_data->site_url ) );
 		}
 
-		EE_DOCKER::docker_compose_up( $this->site_data->site_fs_path, [ 'nginx', 'php' ] );
+		if ( ! EE_DOCKER::docker_compose_up( $this->site_data->site_fs_path, [ 'nginx', 'php' ] ) ) {
+			EE::error( sprintf( 'Error in disabling admin-tools for %s site. Check logs.', $this->site_data->site_url ) );
+		}
 		EE::success( sprintf( 'admin-tools disabled for %s site.', $this->site_data->site_url ) );
 		$this->site_data->admin_tools = 0;
 		$this->site_data->save();
 		EE\Utils\delem_log( 'admin-tools ' . __FUNCTION__ . ' stop' );
+	}
+
+	/**
+	 * Renders the site's docker-compose-admin.yml.
+	 *
+	 * @param string $site_fs_path Site root on the host.
+	 * @param string $cache_host   Redis host of the site.
+	 * @param string $db_host      DB host of the site.
+	 *
+	 * @return string
+	 */
+	public static function render_admin_compose( $site_fs_path, $cache_host, $db_host ) {
+
+		$docker_compose_data = [
+			'ee_root_dir'        => EE_ROOT_DIR,
+			'ee_admin_path'      => '/var/www/htdocs/ee-admin',
+			'site_data_dir'      => $site_fs_path . '/' . self::SITE_DATA_DIR,
+			'container_data_dir' => self::CONTAINER_DATA_DIR,
+			'redis_host'         => $cache_host,
+			'db_host'            => $db_host,
+		];
+
+		return EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/docker-compose-admin.mustache', $docker_compose_data );
+	}
+
+	/**
+	 * Renders the shared admin-tools index.php.
+	 *
+	 * @return string
+	 */
+	public static function render_index() {
+
+		$index_data = [
+			'ee_admin_path' => '/var/www/htdocs/ee-admin',
+		];
+
+		return EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/index.mustache', $index_data );
+	}
+
+	/**
+	 * Writes the only site state the index needs; it is mounted read-only into the site's php container.
+	 *
+	 * @param string $site_fs_path    Site root on the host.
+	 * @param bool   $mailhog_enabled Whether mailhog is enabled for the site.
+	 * @param bool   $page_cache      Whether the site has the nginx full-page cache.
+	 */
+	public static function write_site_data( $site_fs_path, $mailhog_enabled, $page_cache ) {
+
+		$site_data = [
+			'mailhog'    => (bool) $mailhog_enabled,
+			'page_cache' => (bool) $page_cache,
+		];
+		$data_dir  = $site_fs_path . '/' . self::SITE_DATA_DIR;
+		$fs        = new Filesystem();
+		$fs->dumpFile( $data_dir . '/site.json', json_encode( $site_data ) . "\n" );
+		// Not left to the umask: www-data in the php container must be able to read them.
+		$fs->chmod( $data_dir, 0755 );
+		$fs->chmod( $data_dir . '/site.json', 0644 );
+	}
+
+	/**
+	 * Refreshes the index flags of every site with admin-tools, after mailhog is toggled.
+	 */
+	public static function sync_site_data() {
+
+		foreach ( Site::where( 'admin_tools', 1 ) as $site ) {
+			if ( ! is_dir( $site->site_fs_path ) ) {
+				continue;
+			}
+			try {
+				self::write_site_data( $site->site_fs_path, $site->mailhog_enabled, $site->cache_nginx_fullpage );
+			} catch ( \Exception $e ) {
+				EE::warning( sprintf( 'Could not update the admin-tools data of %s: %s', $site->site_url, $e->getMessage() ) );
+			}
+		}
 	}
 
 	/**
@@ -221,12 +303,7 @@ class Admin_Tools_Command extends EE_Command {
 	 */
 	private function install_index( $data, $tool_path ) {
 
-		$index_path_data = [
-			'db_path'       => DB,
-			'ee_admin_path' => '/var/www/htdocs/ee-admin',
-		];
-		$index_file      = EE\Utils\mustache_render( ADMIN_TEMPLATE_ROOT . '/index.mustache', $index_path_data );
-		$this->fs->dumpFile( $tool_path . '.php', $index_file );
+		$this->fs->dumpFile( $tool_path . '.php', self::render_index() );
 	}
 
 	/**
