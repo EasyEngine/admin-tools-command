@@ -11,6 +11,9 @@ if (!empty($admin_user)) {
 'password' => $admin_pass,
 ),
 );
+} else {
+  // phpRedisAdmin 1.27.0+ refuses to run without a login; /ee-admin/ is already behind EasyEngine's admin-tools basic auth.
+  $config['allow_no_auth'] = true;
 }
 
 $config['servers'] = array();

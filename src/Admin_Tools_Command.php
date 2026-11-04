@@ -85,6 +85,13 @@ class Admin_Tools_Command extends EE_Command {
 		if ( ! is_file( $index_file ) || file_get_contents( $index_file ) !== $index ) {
 			$this->fs->dumpFile( $index_file, $index );
 		}
+
+		// A phpRedisAdmin config written by an older release lacks allow_no_auth, which pra 1.27.0+ needs to serve.
+		$pra_config_file = ADMIN_TOOL_DIR . '/pra/includes/config.inc.php';
+		$pra_config      = file_get_contents( ADMIN_TEMPLATE_ROOT . '/pra.config.mustache' );
+		if ( is_file( $pra_config_file ) && file_get_contents( $pra_config_file ) !== $pra_config ) {
+			$this->fs->dumpFile( $pra_config_file, $pra_config );
+		}
 	}
 
 	/**
